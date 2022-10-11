@@ -265,7 +265,117 @@ size_t gif_read_next_code(
   return offset + code_size;
 }
 
-gif_decoded_image_t *gif_decode_image_block(
+gif_index_list_t *gif_decode_image_data(
+  unsigned char *data,
+  unsigned char min_code_size,
+  unsigned char color_table_size,
+  u_int32_t width,
+  u_int32_t height,
+  int *error
+) {
+  unsigned char code_size = min_code_size + 1;
+  size_t bit_offset = 0;
+  u_int16_t current_code = 0;
+  unsigned char *sequence = NULL;
+  int is_end = 0, is_reset = 0;
+  unsigned char buffer[64] = { 0 };
+  int max_code_count = (1 << code_size);
+
+  gif_lzw_code_table *table = gif_lzw_code_table_init(color_table_size);
+  if (table == NULL) {
+    *error = GIF_ERR_MEMIO;
+    return NULL;
+  }
+
+  // First code must be RESET.
+  bit_offset = gif_read_next_code(&current_code, data, bit_offset, code_size);
+  sequence = gif_lzw_code_table_element_at(table, current_code, &is_reset, &is_end);
+  if (!is_reset) {
+    gif_lzw_code_table_free(table);
+    *error = GIF_ERR_BAD_ENCODING;
+    return NULL;
+  }
+
+  // Allocate space for all pixel indexes.
+  u_int32_t total_size = width * height;
+  gif_index_list_t *indexes = gif_index_list_init(total_size);
+  if (indexes == NULL) {
+    gif_lzw_code_table_free(table);
+    *error = GIF_ERR_MEMIO;
+    return NULL;
+  }
+
+  // Read first index.
+  bit_offset = gif_read_next_code(&current_code, data, bit_offset, code_size);
+  sequence = gif_lzw_code_table_element_at(table, current_code, &is_reset, &is_end);
+  gif_index_list_add_seq(indexes, sequence);
+  memcpy(buffer, sequence, sequence[0] + 1);
+
+  // Main loop.
+  while (1) {
+    bit_offset = gif_read_next_code(&current_code, data, bit_offset, code_size);
+    sequence = gif_lzw_code_table_element_at(table, current_code, &is_reset, &is_end);
+    if (is_end) {
+      break;
+    } else if (is_reset) {
+      // Reset table.
+      gif_lzw_code_table_free(table);
+      table = gif_lzw_code_table_init(color_table_size);
+      // Reset code size.
+      code_size = min_code_size + 1;
+      max_code_count = (1 << code_size);
+    } else {
+      if (sequence == NULL) {
+        // New code entry: prev sequence + first element of prev sequence
+        buffer[buffer[0] + 1] = buffer[1];
+        buffer[0] = buffer[0] + 1;
+        // Output new sequence.
+        gif_index_list_add_seq(indexes, buffer);
+        // Append new entry to the code table.
+        gif_lzw_code_table_append_element(table, buffer, error);
+
+        //printf("code %d not found, new sequence: ", current_code);
+        //for (int idx = 0; idx < buffer[0] + 1; idx++) {
+        //  printf("%d ", buffer[idx]);
+        //}
+        //printf("\n");
+      } else {
+        // Output current sequence to the index stream.
+        gif_index_list_add_seq(indexes, sequence);
+        // New code entry: previous sequence + first element in new one
+        buffer[buffer[0] + 1] = sequence[1];
+        buffer[0] = buffer[0] + 1;
+        // Append new entry to the code table.
+        gif_lzw_code_table_append_element(table, buffer, error);
+
+        //printf("code %d, sequence '", current_code);
+        //for (int idx = 0; idx < sequence[0] + 1; idx++) {
+        //  printf("%d ", sequence[idx]);
+        //}
+        //printf("' found, new sequence: ");
+        //for (int idx = 0; idx < buffer[0] + 1; idx++) {
+        //  printf("%d ", buffer[idx]);
+        //}
+        //printf("\n");
+
+        // Replace buffer with current sequence.
+        memcpy(buffer, sequence, sequence[0] + 1);
+        sequence = NULL;
+      }
+
+      // Check if need to increase code size.
+      if (table->element_count == max_code_count) {
+        code_size += 1;
+        max_code_count = (1 << code_size);
+      }
+    }
+  }
+
+  return indexes;
+}
+
+void gif_decode_image_block(
+  gif_decoded_image_t *decoded,
   gif_image_block_t *image,
   unsigned char global_color_table_size,
   gif_color_t *global_color_table,
@@ -284,109 +394,67 @@ gif_decoded_image_t *gif_decode_image_block(
     color_table_size = global_color_table_size;
   }
 
-  unsigned char code_size = image->minimum_code_size + 1;
-  size_t bit_offset = 0;
-  u_int16_t current_code = 0;
-  unsigned char *sequence = NULL;
-  int is_end = 0, is_reset = 0;
-  unsigned char buffer[64] = { 0 };
-  int max_code_count = (1 << code_size);
+  // Decode image data into index list.
+  gif_index_list_t *indexes = gif_decode_image_data(
+    image->data,
+    image->minimum_code_size,
+    color_table_size,
+    image->descriptor.width,
+    image->descriptor.height,
+    error
+  );
 
-  gif_lzw_code_table *table = gif_lzw_code_table_init(color_table_size);
-  if (table == NULL) {
-    *error = GIF_ERR_MEMIO;
-    return NULL;
-  }
-
-  // First code must be RESET.
-  bit_offset = gif_read_next_code(&current_code, image->data, bit_offset, code_size);
-  sequence = gif_lzw_code_table_element_at(table, current_code, &is_reset, &is_end);
-  if (!is_reset) {
-    gif_lzw_code_table_free(table);
+  if (*error != 0) {
+    if (indexes != NULL)
+      gif_index_list_free(indexes);
+    return;
+  } else if (indexes->count != image->descriptor.width * image->descriptor.height) {
     *error = GIF_ERR_BAD_ENCODING;
-    return NULL;
+    if (indexes != NULL)
+      gif_index_list_free(indexes);
+    return;
   }
 
-  // Allocate space for all pixel indexes.
-  size_t total_size = image->descriptor.width * image->descriptor.height;
-  gif_index_list_t *indexes = gif_index_list_init(total_size);
-  if (indexes == NULL) {
-    gif_lzw_code_table_free(table);
+  // Decode index list into colors.
+  unsigned char *rgba = malloc(indexes->count * 4);
+  if (rgba == NULL) {
     *error = GIF_ERR_MEMIO;
-    return NULL;
+    gif_index_list_free(indexes);
+    return;
   }
 
-  // Decoding begins here.
+  for (int idx = 0, offset = 0; idx < indexes->count; idx++, offset += 4) {
+    unsigned char color_index = indexes->elements[idx];
 
-  // Read first index.
-  bit_offset = gif_read_next_code(&current_code, image->data, bit_offset, code_size);
-  sequence = gif_lzw_code_table_element_at(table, current_code, &is_reset, &is_end);
-  gif_index_list_add_seq(indexes, sequence);
-  memcpy(buffer, sequence, sequence[0] + 1);
-
-  // Main loop.
-  while (1) {
-    bit_offset = gif_read_next_code(&current_code, image->data, bit_offset, code_size);
-    sequence = gif_lzw_code_table_element_at(table, current_code, &is_reset, &is_end);
-    if (is_end) {
-      break;
-    } else if (is_reset) {
-      // Reset table.
-      gif_lzw_code_table_free(table);
-      table = gif_lzw_code_table_init(color_table_size);
+    // TODO: Support interlacing.
+    if (
+      image->gc != NULL &&
+      image->gc->transparency_flag &&
+      color_index == image->gc->transparent_color_index
+    ) {
+      memset(rgba + offset, 0, 4);
     } else {
-      if (sequence == NULL) {
-        // New code entry: prev sequence + first element of prev sequence
-        buffer[buffer[0] + 1] = buffer[1];
-        buffer[0] = buffer[0] + 1;
-        // Output new sequence.
-        gif_index_list_add_seq(indexes, buffer);
-        // Append new entry to the code table.
-        gif_lzw_code_table_append_element(table, buffer, error);
-
-        printf("code %d not found, new sequence: ", current_code);
-        for (int idx = 0; idx < buffer[0] + 1; idx++) {
-          printf("%d ", buffer[idx]);
-        }
-        printf("\n");
-      } else {
-        // Output current sequence to the index stream.
-        gif_index_list_add_seq(indexes, sequence);
-        // New code entry: previous sequence + first element in new one
-        buffer[buffer[0] + 1] = sequence[1];
-        buffer[0] = buffer[0] + 1;
-        // Append new entry to the code table.
-        gif_lzw_code_table_append_element(table, buffer, error);
-
-        printf("code %d, sequence '", current_code);
-        for (int idx = 0; idx < sequence[0] + 1; idx++) {
-          printf("%d ", sequence[idx]);
-        }
-        printf("' found, new sequence: ");
-        for (int idx = 0; idx < buffer[0] + 1; idx++) {
-          printf("%d ", buffer[idx]);
-        }
-        printf("\n");
-
-        // Replace buffer with current sequence.
-        memcpy(buffer, sequence, sequence[0] + 1);
-        sequence = NULL;
-      }
-
-      // Check if need to increase code size.
-      if (table->element_count == max_code_count) {
-        printf("code count %d, increasing code size to %d\n", max_code_count, code_size + 1);
-        code_size += 1;
-        max_code_count = (1 << code_size);
-      }
+      rgba[offset + 0] = color_table[color_index].red;
+      rgba[offset + 1] = color_table[color_index].green;
+      rgba[offset + 2] = color_table[color_index].blue;
+      rgba[offset + 3] = 255;
     }
   }
 
-  // TODO: Replace debug code with proper logic.
-  for (int idx = 0; idx < indexes->count; idx++) {
-    printf("%d ", indexes->elements[idx]);
+  decoded->rgba = rgba;
+  decoded->top = image->descriptor.top;
+  decoded->left = image->descriptor.left;
+  decoded->width = image->descriptor.width;
+  decoded->height = image->descriptor.height;
+  if (image->gc != NULL) {
+    decoded->dispose_method = image->gc->dispose_method;
+    decoded->delay_cs = image->gc->delay_cs;
   }
-  printf("\n");
+
+  //for (int idx = 0; idx < indexes->count; idx++) {
+  //  printf("%d ", indexes->elements[idx]);
+  //}
+  //printf("\n");
 }
 
 /** Public **/
@@ -412,6 +480,24 @@ gif_decoded_t *gif_decoded_from_parsed(gif_parsed_t *parsed, int *error) {
     memcpy(decoded->background_color, &color, 3);
   }
 
+  // Count images first.
+  int image_count = 0;
+  for (int idx = 0; idx < parsed->block_count; idx++) {
+    gif_block_t *block = parsed->blocks[idx];
+    if (block->type == GIF_BLOCK_IMAGE) {
+      image_count += 1;
+    }
+  }
+
+  // Allocate space for images.
+  gif_decoded_image_t *images = malloc(sizeof(gif_decoded_image_t) * image_count);
+  if (images == NULL) {
+    *error = GIF_ERR_MEMIO;
+    gif_decoded_free(decoded);
+    return NULL;
+  }
+
+  int image_idx = 0;
   for (int idx = 0; idx < parsed->block_count; idx++) {
     gif_block_t *block = parsed->blocks[idx];
 
@@ -425,24 +511,30 @@ gif_decoded_t *gif_decoded_from_parsed(gif_parsed_t *parsed, int *error) {
         decoded->repeat_count = repeat_count;
       }
     } else if (block->type == GIF_BLOCK_IMAGE) {
+      printf("Decoding image %d\n", image_idx);
       gif_image_block_t *image_block = (gif_image_block_t *)block;
-      gif_decoded_image_t *image = gif_decode_image_block(
+      gif_decode_image_block(
+        images + image_idx,
         image_block,
         parsed->screen.color_table_size,
         parsed->global_color_table,
         error
       );
 
-      if (image != NULL) {
-        // TODO: Saving
-      } else {
+      if (*error != 0) {
         break;
+      } else {
+        decoded->image_count += 1;
+        image_idx += 1;
       }
     } else {
-      // Ignore comment and plain text ones for now.
+      // Ignore everything else, including comment and plain text, for now.
     }
   }
 
+  if (decoded->image_count > 0) {
+    decoded->images = images;
+  }
   return decoded;
 }
 
