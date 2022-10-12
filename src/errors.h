@@ -9,5 +9,7 @@ static const int GIF_ERR_FILEIO_NO_SIZE = 5;
 static const int GIF_ERR_BAD_FORMAT = 6;
 static const int GIF_ERR_BAD_BLOCK_SIZE = 7;
 static const int GIF_ERR_BAD_ENCODING = 8;
+static const int GIF_ERR_UNKNOWN_BLOCK = 9;
+static const int GIF_ERR_NO_RESET = 10;
 
 #endif

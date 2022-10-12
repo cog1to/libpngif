@@ -9,7 +9,7 @@ typedef struct {
   u_int32_t width;
   u_int32_t height;
   unsigned char color_resolution;
-  unsigned char color_table_size;
+  size_t color_table_size;
   unsigned char background_color_index;
   unsigned char pixel_aspect_ratio;
 } gif_lsd_t;
@@ -65,7 +65,7 @@ typedef struct {
   u_int32_t left;
   u_int32_t top;
   unsigned char interlace;
-  unsigned char color_table_size;
+  size_t color_table_size;
 } gif_image_descriptor_t;
 
 typedef struct {

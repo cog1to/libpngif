@@ -27,7 +27,7 @@ int8_t max_int8(int8_t a, int8_t b) {
 
 typedef struct {
   // Size of the color table. This is needed to detect CLEAR and END codes.
-  unsigned char color_table_size;
+  size_t color_table_size;
   // Max number of elements.
   size_t size;
   // Current number of elements.
@@ -35,13 +35,13 @@ typedef struct {
   // Number of bytes that each element can occupy.
   size_t stride;
   // Element storage:
-  // First byte of each element is it's length, next LENGTH bytes are color
-  // table indexes. The code table guarantees that there's enough space
+  // First two bytes of each element is it's length, next LENGTH bytes are
+  // color table indexes. The code table guarantees that there's enough space
   // allocated for all elements at all times.
   unsigned char *elements;
 } gif_lzw_code_table;
 
-gif_lzw_code_table *gif_lzw_code_table_init(unsigned char color_table_size) {
+gif_lzw_code_table *gif_lzw_code_table_init(size_t color_table_size) {
   gif_lzw_code_table *table = calloc(1, sizeof(gif_lzw_code_table));
   if (table == NULL) {
     return NULL;
@@ -49,7 +49,7 @@ gif_lzw_code_table *gif_lzw_code_table_init(unsigned char color_table_size) {
 
   table->color_table_size = color_table_size;
   table->size = color_table_size * 2;
-  table->stride = 4;
+  table->stride = 6;
   table->elements = calloc(table->size, table->stride);
   table->element_count = color_table_size + 2;
 
@@ -59,8 +59,9 @@ gif_lzw_code_table *gif_lzw_code_table_init(unsigned char color_table_size) {
     idx < color_table_size;
     idx++, offset += table->stride
   ) {
-    table->elements[offset] = 1;
-    table->elements[offset + 1] = idx;
+    u_int16_t *length = (u_int16_t *)(table->elements + offset);
+    *length = 1;
+    table->elements[offset + 2] = idx;
   }
 
   return table;
@@ -116,20 +117,24 @@ unsigned char *gif_lzw_code_table_element_at(
   int *is_clear,
   int *is_end
 ) {
+  if (is_clear != NULL) {
+    if (index == table->color_table_size) {
+      *is_clear = 1;
+    } else {
+      *is_clear = 0;
+    }
+  }
+
+  if (is_end != NULL) {
+    if (index == (table->color_table_size + 1)) {
+      *is_end = 1;
+    } else {
+      *is_end = 0;
+    }
+  }
+
   if (index >= table->element_count) {
     return NULL;
-  }
-
-  if (index == table->color_table_size && is_clear != NULL) {
-    *is_clear = 1;
-  } else {
-    *is_clear = 0;
-  }
-
-  if (index == (table->color_table_size + 1) && is_end != NULL) {
-    *is_end = 1;
-  } else {
-    *is_end = 0;
   }
 
   return table->elements + (index * table->stride);
@@ -140,15 +145,15 @@ size_t gif_lzw_code_table_append_element(
   unsigned char *element,
   int *error
 ) {
-  unsigned char elsize = element[0];
+  u_int16_t *elsize = (u_int16_t *)element;
 
   // Resize code table if needed.
-  if (table->element_count == table->size || elsize >= table->stride) {
+  if (table->element_count == table->size || *elsize > (table->stride - 2)) {
     size_t new_size = (table->element_count == table->size)
       ? (table->size * 2)
       : table->size;
-    size_t new_stride = (elsize >= table->stride)
-      ? max_size(table->stride * 2, elsize + 1)
+    size_t new_stride = (*elsize > (table->stride - 2))
+      ? max_size(table->stride * 2, *elsize + 2)
       : table->stride;
 
     gif_lzw_code_table *new_table = gif_lzw_code_table_resize(
@@ -164,8 +169,7 @@ size_t gif_lzw_code_table_append_element(
   }
 
   unsigned char *target = table->elements + (table->element_count * table->stride);
-  target[0] = elsize;
-  memcpy(target + 1, element + 1, elsize);
+  memcpy(target, element, *elsize + 2);
 
   table->element_count = table->element_count + 1;
   return table->element_count;
@@ -179,13 +183,13 @@ typedef struct {
 } gif_index_list_t;
 
 void gif_index_list_add_seq(gif_index_list_t *list, unsigned char *seq) {
-  int seq_length = seq[0];
-  memcpy(list->elements + list->count, seq + 1, seq_length);
-  list->count = list->count + seq_length;
+  u_int16_t *seq_length = (u_int16_t *)seq;
+  memcpy(list->elements + list->count, seq + 2, *seq_length);
+  list->count = list->count + *seq_length;
 }
 
 gif_index_list_t *gif_index_list_init(size_t size) {
-  gif_index_list_t *list = malloc(size);
+  gif_index_list_t *list = calloc(size, 1);
 
   if (list != NULL) {
     list->elements = malloc(size);
@@ -235,64 +239,52 @@ unsigned char bit_mask(size_t bits) {
   }
 }
 
-size_t gif_read_next_code(
+u_int64_t gif_read_next_code(
   u_int16_t *output,
   unsigned char *data,
-  size_t offset,
+  u_int64_t offset,
   unsigned char code_size
 ) {
-  size_t offset_end = offset + code_size;
-  int8_t bits_left = code_size;
-  size_t start_byte = offset / 8;
-  u_int16_t byte_value, result = 0;
+  int current_offset = offset;
+  int bits_left = code_size;
+  int byte_value, result = 0;
 
   while (bits_left > 0) {
-    size_t current_byte = (offset_end + 7) / 8 - 1;
-    size_t current_byte_bit_offset = current_byte * 8;
-    size_t current_byte_bits = offset_end - current_byte_bit_offset;
-    size_t current_byte_target_offset = (current_byte > start_byte) ? 0 : (offset % 8);
-    size_t shift_left = max_int8(bits_left - current_byte_bits, 0);
+    int current_byte = current_offset / 8;
+    int shift_right = current_offset - (current_byte * 8);
+
     byte_value = data[current_byte];
+    byte_value = byte_value >> shift_right;
+    byte_value = byte_value & (bit_mask(bits_left));
 
-    result = result | (((byte_value & bit_mask(current_byte_bits)) >> current_byte_target_offset) << shift_left);
+    result = result + (byte_value << (code_size - bits_left));
 
-    // Shift back.
-    bits_left -= current_byte_bits;
-    offset_end -= current_byte_bits;
+    current_offset += (8 - shift_right);
+    bits_left -= (8 - shift_right);
   }
-
   *output = result;
-  return offset + code_size;
+  return (offset + code_size);
 }
 
 gif_index_list_t *gif_decode_image_data(
   unsigned char *data,
   unsigned char min_code_size,
-  unsigned char color_table_size,
+  size_t color_table_size,
   u_int32_t width,
   u_int32_t height,
   int *error
 ) {
-  unsigned char code_size = min_code_size + 1;
-  size_t bit_offset = 0;
+  int code_size = min_code_size + 1;
+  u_int64_t bit_offset = 0;
   u_int16_t current_code = 0;
   unsigned char *sequence = NULL;
   int is_end = 0, is_reset = 0;
-  unsigned char buffer[64] = { 0 };
-  int max_code_count = (1 << code_size);
+  unsigned char buffer[2048] = { 0 };
+  int max_code_count = 1 << code_size;
 
   gif_lzw_code_table *table = gif_lzw_code_table_init(color_table_size);
   if (table == NULL) {
     *error = GIF_ERR_MEMIO;
-    return NULL;
-  }
-
-  // First code must be RESET.
-  bit_offset = gif_read_next_code(&current_code, data, bit_offset, code_size);
-  sequence = gif_lzw_code_table_element_at(table, current_code, &is_reset, &is_end);
-  if (!is_reset) {
-    gif_lzw_code_table_free(table);
-    *error = GIF_ERR_BAD_ENCODING;
     return NULL;
   }
 
@@ -305,68 +297,77 @@ gif_index_list_t *gif_decode_image_data(
     return NULL;
   }
 
-  // Read first index.
-  bit_offset = gif_read_next_code(&current_code, data, bit_offset, code_size);
-  sequence = gif_lzw_code_table_element_at(table, current_code, &is_reset, &is_end);
-  gif_index_list_add_seq(indexes, sequence);
-  memcpy(buffer, sequence, sequence[0] + 1);
+  /** Main decode loop **/
 
-  // Main loop.
+  // Current sequence and buffer lengths storage.
+  u_int16_t *seq_size = 0;
+  u_int16_t *buf_size = 0;
+  // First code that is read has to be a RESET/CLEAR code.
+  int expect_reset = 1;
+
   while (1) {
     bit_offset = gif_read_next_code(&current_code, data, bit_offset, code_size);
     sequence = gif_lzw_code_table_element_at(table, current_code, &is_reset, &is_end);
     if (is_end) {
+      sequence = NULL;
       break;
     } else if (is_reset) {
       // Reset table.
       gif_lzw_code_table_free(table);
       table = gif_lzw_code_table_init(color_table_size);
+
       // Reset code size.
       code_size = min_code_size + 1;
-      max_code_count = (1 << code_size);
+      max_code_count = 1 << code_size;
+      expect_reset = 0;
+      sequence = NULL;
+
+      // Read first index after reset and initialize code buffer.
+      bit_offset = gif_read_next_code(&current_code, data, bit_offset, code_size);
+      sequence = gif_lzw_code_table_element_at(table, current_code, &is_reset, &is_end);
+      gif_index_list_add_seq(indexes, sequence);
+      seq_size = (u_int16_t *)sequence;
+      memcpy(buffer, sequence, *seq_size + 2);
     } else {
-      if (sequence == NULL) {
+      if (expect_reset) {
+        *error = GIF_ERR_NO_RESET;
+        break;
+      } else if (sequence == NULL) {
         // New code entry: prev sequence + first element of prev sequence
-        buffer[buffer[0] + 1] = buffer[1];
-        buffer[0] = buffer[0] + 1;
+        buf_size = (u_int16_t *)buffer;
+        buffer[*buf_size + 2] = buffer[2];
+        *buf_size = *buf_size + 1;
         // Output new sequence.
         gif_index_list_add_seq(indexes, buffer);
         // Append new entry to the code table.
         gif_lzw_code_table_append_element(table, buffer, error);
-
-        //printf("code %d not found, new sequence: ", current_code);
-        //for (int idx = 0; idx < buffer[0] + 1; idx++) {
-        //  printf("%d ", buffer[idx]);
-        //}
-        //printf("\n");
       } else {
         // Output current sequence to the index stream.
         gif_index_list_add_seq(indexes, sequence);
+        seq_size = (u_int16_t *)sequence;
         // New code entry: previous sequence + first element in new one
-        buffer[buffer[0] + 1] = sequence[1];
-        buffer[0] = buffer[0] + 1;
+        buf_size = (u_int16_t *)buffer;
+        buffer[*buf_size + 2] = sequence[2];
+        *buf_size = *buf_size + 1;
         // Append new entry to the code table.
         gif_lzw_code_table_append_element(table, buffer, error);
 
-        //printf("code %d, sequence '", current_code);
-        //for (int idx = 0; idx < sequence[0] + 1; idx++) {
-        //  printf("%d ", sequence[idx]);
-        //}
-        //printf("' found, new sequence: ");
-        //for (int idx = 0; idx < buffer[0] + 1; idx++) {
-        //  printf("%d ", buffer[idx]);
-        //}
-        //printf("\n");
-
         // Replace buffer with current sequence.
-        memcpy(buffer, sequence, sequence[0] + 1);
+        memcpy(buffer, sequence, *seq_size + 2);
         sequence = NULL;
       }
 
       // Check if need to increase code size.
       if (table->element_count == max_code_count) {
-        code_size += 1;
-        max_code_count = (1 << code_size);
+        // Do not increase code size beyond 12, it's max value defined in GIF
+        // standard. Instead set the `expect_reset` flag on, becase the next
+        // code MUST be a reset code.
+        if (max_code_count == 4096) {
+          expect_reset = 1;
+        } else {
+          code_size += 1;
+          max_code_count = 1 << code_size;
+        }
       }
     }
   }
@@ -377,12 +378,12 @@ gif_index_list_t *gif_decode_image_data(
 void gif_decode_image_block(
   gif_decoded_image_t *decoded,
   gif_image_block_t *image,
-  unsigned char global_color_table_size,
+  size_t global_color_table_size,
   gif_color_t *global_color_table,
   int *error
 ) {
   gif_color_t *color_table;
-  unsigned char color_table_size;
+  size_t color_table_size;
 
   // The color table might be embedded in the image block. Otherwise use global
   // one.
@@ -405,11 +406,6 @@ void gif_decode_image_block(
   );
 
   if (*error != 0) {
-    if (indexes != NULL)
-      gif_index_list_free(indexes);
-    return;
-  } else if (indexes->count != image->descriptor.width * image->descriptor.height) {
-    *error = GIF_ERR_BAD_ENCODING;
     if (indexes != NULL)
       gif_index_list_free(indexes);
     return;
@@ -450,11 +446,6 @@ void gif_decode_image_block(
     decoded->dispose_method = image->gc->dispose_method;
     decoded->delay_cs = image->gc->delay_cs;
   }
-
-  //for (int idx = 0; idx < indexes->count; idx++) {
-  //  printf("%d ", indexes->elements[idx]);
-  //}
-  //printf("\n");
 }
 
 /** Public **/
@@ -511,7 +502,6 @@ gif_decoded_t *gif_decoded_from_parsed(gif_parsed_t *parsed, int *error) {
         decoded->repeat_count = repeat_count;
       }
     } else if (block->type == GIF_BLOCK_IMAGE) {
-      printf("Decoding image %d\n", image_idx);
       gif_image_block_t *image_block = (gif_image_block_t *)block;
       gif_decode_image_block(
         images + image_idx,

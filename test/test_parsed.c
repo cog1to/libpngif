@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
   // Logical Screen Descriptor.
   printf("SIZE: %dx%d\n", raw->screen.width, raw->screen.height);
   printf("COLOR RESOLUTION: %d\n", raw->screen.color_resolution);
-  printf("COLOR TABLE SIZE: %d\n", raw->screen.color_table_size);
+  printf("COLOR TABLE SIZE: %ld\n", raw->screen.color_table_size);
   printf("BACK PIXEL INDEX: %d\n", raw->screen.background_color_index);
   printf("PIXEL ASPECT RATIO: %d\n", raw->screen.pixel_aspect_ratio);
 

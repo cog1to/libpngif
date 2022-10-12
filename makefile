@@ -17,7 +17,7 @@ test_codes: $(SRC_FILES) test/test_read_code.c
 	gcc -Wall -o bin/test_codes -Isrc/ $(SRC_FILES) test/test_read_code.c
 
 test_decoded: $(SRC_FILES) test/test_decoded.c
-	gcc -Wall -o bin/test_decoded -Isrc/ $(CFLAGS) $(SRC_FILES) $(DECODED_TARGET)
+	gcc --debug -Wall -o bin/test_decoded -Isrc/ $(CFLAGS) $(SRC_FILES) $(DECODED_TARGET)
 
 tests: $(SRC_FILES)
 	make test_parsed

@@ -287,7 +287,7 @@ gif_image_block_t *gif_read_image_block(
   unsigned char settings = data[start + 8];
   unsigned char interlace = (settings & 0x40) > 0 ? 1 : 0;
   unsigned char color_table_flag = settings & 128;
-  unsigned char color_table_size = 0;
+  size_t color_table_size = 0;
 
   image->descriptor.left = left;
   image->descriptor.top = top;
@@ -398,7 +398,7 @@ gif_parsed_t *gif_parsed_from_file(const char *filename, int *error) {
     unsigned char color_table_res = (color_table_info & 0x70) >> 4;
     gif->screen.color_resolution = color_table_res + 1;
 
-    unsigned char color_table_size = (color_table_info & 0x07);
+    size_t color_table_size = (color_table_info & 0x07);
     gif->screen.color_table_size = 1 << (color_table_size + 1);
   }
 
@@ -408,7 +408,7 @@ gif_parsed_t *gif_parsed_from_file(const char *filename, int *error) {
   /** Logical Screen Descriptor End **/
 
   // Global color table.
-  unsigned char table_size = gif->screen.color_table_size;
+  size_t table_size = gif->screen.color_table_size;
   if (table_size > 0) {
     gif_color_t *table = malloc(sizeof(gif_color_t) * table_size);
     if (table == NULL) {
@@ -455,6 +455,9 @@ gif_parsed_t *gif_parsed_from_file(const char *filename, int *error) {
       }
       offset += 1; // Skip block terminator.
       block = NULL;
+    } else {
+      *error = GIF_ERR_UNKNOWN_BLOCK;
+      break;
     }
 
     if (block != NULL) {
