@@ -239,6 +239,23 @@ unsigned char bit_mask(size_t bits) {
   }
 }
 
+/**
+ * LZW compression packs "codes" into bytes on bit-by-bit basis, i. e.
+ * the data stream is treated as bit stream, not byte stream. After a code
+ * is put into the stream, the next code starts at the exact BIT position
+ * where the last one ended. For example, if we have code size of 3, the first
+ * few bytes would look like this:
+ *
+ * byte 1    byte 2    byte 3
+ * 33222111  65554443  88877766
+ *
+ * Here individual digits are code indexes. You can see that code 3 has first 2
+ * bits stored in the first byte, and the remaning bit stored in the second
+ * byte, code 6 starts at the last bit of byte 2, and spans into first 2 bits
+ * of byte 3, and so on.
+ *
+ * This makes the decoding a little tricky, as you'll see in the code below.
+ */
 u_int64_t gif_read_next_code(
   u_int16_t *output,
   unsigned char *data,
@@ -250,16 +267,24 @@ u_int64_t gif_read_next_code(
   int byte_value, result = 0;
 
   while (bits_left > 0) {
+    // Get what byte we're in right now.
     int current_byte = current_offset / 8;
+    // Get the number of bits to skip till the first code bit.
     int shift_right = current_offset - (current_byte * 8);
 
+    // Read the byte.
     byte_value = data[current_byte];
+    // Shift right to erase previous code data.
     byte_value = byte_value >> shift_right;
+    // Erase everything past current code's end.
     byte_value = byte_value & (bit_mask(bits_left));
 
+    // Add what's left to the resulting code value, in a proper position.
     result = result + (byte_value << (code_size - bits_left));
 
+    // Advance the bit offset past the data we've just read.
     current_offset += (8 - shift_right);
+    // Substract the number of bits read from the total expected code size.
     bits_left -= (8 - shift_right);
   }
   *output = result;
