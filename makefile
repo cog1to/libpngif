@@ -4,7 +4,7 @@ UNAME := $(shell uname)
 
 ifeq ($(UNAME), Darwin)
 	CFLAGS += -D OS_MAC -framework Cocoa
-	DECODED_TARGET += test/test_decoded.m
+	DECODED_TARGET += -Isupport/ test/test_decoded.m support/animator.m
 else
 	CFLAGS += -D OS_LINUX
 	DECODED_TARGET += test/test_decoded.c

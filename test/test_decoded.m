@@ -7,6 +7,7 @@
 #include <gif_decoded.h>
 
 #import "Cocoa/Cocoa.h"
+#import "animator.h"
 
 int max_wsize(int a, int b);
 void show_decoded_image(gif_decoded_t *gif);
@@ -83,16 +84,12 @@ void show_decoded_image(gif_decoded_t *gif) {
     gif->height
   );
 
-  id imageView = [[[NSImageView alloc] initWithFrame:imageRect] autorelease];
+  NSImageView *imageView = [[[NSImageView alloc] initWithFrame:imageRect] autorelease];
   [[window contentView] addSubview:imageView];
 
-  // Convert gif data into an NSImage.
-  // TODO: Slideshow for all images.
-  NSArray *images = images_from_decoded(gif);
-  if (images != NULL) {
-    NSImage *image = [images objectAtIndex: 0];
-    [imageView setImage: image];
-  }
+  Animator *animator = [[Animator alloc] initWithDecodedGif:(gif)];
+  [animator setImageView: imageView];
+  [animator start];
 
   // Show window and run event loop.
   [window orderFrontRegardless];
@@ -101,36 +98,3 @@ void show_decoded_image(gif_decoded_t *gif) {
   [pool drain];
 }
 
-NSArray *images_from_decoded(gif_decoded_t *gif) {
-  if (gif == NULL) {
-    return NULL;
-  }
-
-  if (gif->image_count == 0 || gif->images == NULL) {
-    return NULL;
-  }
-
-  NSMutableArray *output = [[[NSMutableArray alloc] init] autorelease];
-
-  for (int idx = 0; idx < gif->image_count; idx++) {
-    gif_decoded_image_t img = gif->images[idx];
-
-    NSBitmapImageRep *newRep = [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:&img.rgba
-      pixelsWide:img.width
-      pixelsHigh:img.height
-      bitsPerSample:8
-      samplesPerPixel:4
-      hasAlpha:YES
-      isPlanar:NO
-      colorSpaceName:NSDeviceRGBColorSpace
-      bytesPerRow:4 * img.width
-      bitsPerPixel:32];
-
-    NSImage* image = [[NSImage alloc] initWithSize:NSMakeSize(img.width,  img.height)];
-    [image addRepresentation: newRep];
-
-    [output addObject: image];
-  }
-
-  return output;
-}
