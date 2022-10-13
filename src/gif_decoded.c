@@ -175,45 +175,6 @@ size_t gif_lzw_code_table_append_element(
   return table->element_count;
 }
 
-/** Index list **/
-
-typedef struct {
-  size_t count;
-  unsigned char *elements;
-} gif_index_list_t;
-
-void gif_index_list_add_seq(gif_index_list_t *list, unsigned char *seq) {
-  u_int16_t *seq_length = (u_int16_t *)seq;
-  memcpy(list->elements + list->count, seq + 2, *seq_length);
-  list->count = list->count + *seq_length;
-}
-
-gif_index_list_t *gif_index_list_init(size_t size) {
-  gif_index_list_t *list = calloc(size, 1);
-
-  if (list != NULL) {
-    list->elements = malloc(size);
-    if (list->elements != NULL) {
-      list->count = 0;
-    } else {
-      free(list);
-      return NULL;
-    }
-  }
-
-  return list;
-}
-
-void gif_index_list_free(gif_index_list_t *list) {
-  if (list == NULL)
-    return;
-
-  if (list->elements != NULL)
-    free(list->elements);
-
-  free(list);
-}
-
 /** Private **/
 
 unsigned char bit_mask(size_t bits) {
@@ -291,12 +252,40 @@ u_int64_t gif_read_next_code(
   return (offset + code_size);
 }
 
-gif_index_list_t *gif_decode_image_data(
+int gif_rgba_add_sequence(
+  unsigned char *rgba,
+  u_int32_t offset,
+  unsigned char *sequence,
+  gif_color_t *color_table,
+  unsigned char *transparent_color_index
+) {
+  u_int16_t *seq_length = (u_int16_t *)sequence;
+  int new_offset = offset;
+
+  for (int idx = 0; idx < *seq_length; idx++) {
+    if (transparent_color_index != NULL && sequence[idx + 2] == *transparent_color_index) {
+      memset(rgba + new_offset, 0, 4);
+    } else {
+      gif_color_t color = color_table[sequence[idx + 2]];
+      rgba[new_offset + 0] = color.red;
+      rgba[new_offset + 1] = color.green;
+      rgba[new_offset + 2] = color.blue;
+      rgba[new_offset + 3] = 255;
+    }
+    new_offset += 4;
+  }
+
+  return new_offset;
+}
+
+unsigned char *gif_decode_image_data(
   unsigned char *data,
   unsigned char min_code_size,
   size_t color_table_size,
   u_int32_t width,
   u_int32_t height,
+  gif_color_t *color_table,
+  unsigned char *transparent_color_index,
   int *error
 ) {
   int code_size = min_code_size + 1;
@@ -314,9 +303,10 @@ gif_index_list_t *gif_decode_image_data(
   }
 
   // Allocate space for all pixel indexes.
-  u_int32_t total_size = width * height;
-  gif_index_list_t *indexes = gif_index_list_init(total_size);
-  if (indexes == NULL) {
+  u_int32_t total_size = width * height * 4;
+  int rgba_offset = 0;
+  unsigned char *rgba = malloc(total_size);
+  if (rgba == NULL) {
     gif_lzw_code_table_free(table);
     *error = GIF_ERR_MEMIO;
     return NULL;
@@ -341,16 +331,23 @@ gif_index_list_t *gif_decode_image_data(
       gif_lzw_code_table_free(table);
       table = gif_lzw_code_table_init(color_table_size);
 
-      // Reset code size.
+      // Reset to start of data stream state.
       code_size = min_code_size + 1;
       max_code_count = 1 << code_size;
       expect_reset = 0;
-      sequence = NULL;
 
-      // Read first index after reset and initialize code buffer.
+      // Output first index after reset and initialize code buffer.
       bit_offset = gif_read_next_code(&current_code, data, bit_offset, code_size);
       sequence = gif_lzw_code_table_element_at(table, current_code, &is_reset, &is_end);
-      gif_index_list_add_seq(indexes, sequence);
+      rgba_offset = gif_rgba_add_sequence(
+        rgba,
+        rgba_offset,
+        sequence,
+        color_table,
+        transparent_color_index
+      );
+
+      // Initialize code buffer.
       seq_size = (u_int16_t *)sequence;
       memcpy(buffer, sequence, *seq_size + 2);
     } else {
@@ -363,14 +360,26 @@ gif_index_list_t *gif_decode_image_data(
         buffer[*buf_size + 2] = buffer[2];
         *buf_size = *buf_size + 1;
         // Output new sequence.
-        gif_index_list_add_seq(indexes, buffer);
+        rgba_offset = gif_rgba_add_sequence(
+          rgba,
+          rgba_offset,
+          buffer,
+          color_table,
+          transparent_color_index
+        );
         // Append new entry to the code table.
         gif_lzw_code_table_append_element(table, buffer, error);
       } else {
         // Output current sequence to the index stream.
-        gif_index_list_add_seq(indexes, sequence);
-        seq_size = (u_int16_t *)sequence;
+        rgba_offset = gif_rgba_add_sequence(
+          rgba,
+          rgba_offset,
+          sequence,
+          color_table,
+          transparent_color_index
+        );
         // New code entry: previous sequence + first element in new one
+        seq_size = (u_int16_t *)sequence;
         buf_size = (u_int16_t *)buffer;
         buffer[*buf_size + 2] = sequence[2];
         *buf_size = *buf_size + 1;
@@ -397,7 +406,7 @@ gif_index_list_t *gif_decode_image_data(
     }
   }
 
-  return indexes;
+  return rgba;
 }
 
 void gif_decode_image_block(
@@ -409,6 +418,7 @@ void gif_decode_image_block(
 ) {
   gif_color_t *color_table;
   size_t color_table_size;
+  unsigned char *transparent_color_index = NULL;
 
   // The color table might be embedded in the image block. Otherwise use global
   // one.
@@ -420,46 +430,28 @@ void gif_decode_image_block(
     color_table_size = global_color_table_size;
   }
 
+  // Check for transparency support.
+  if (
+    image->gc != NULL &&
+    image->gc->transparency_flag
+  ) {
+    transparent_color_index = &(image->gc->transparent_color_index);
+  }
+
   // Decode image data into index list.
-  gif_index_list_t *indexes = gif_decode_image_data(
+  unsigned char *rgba = gif_decode_image_data(
     image->data,
     image->minimum_code_size,
     color_table_size,
     image->descriptor.width,
     image->descriptor.height,
+    color_table,
+    transparent_color_index,
     error
   );
 
   if (*error != 0) {
-    if (indexes != NULL)
-      gif_index_list_free(indexes);
     return;
-  }
-
-  // Decode index list into colors.
-  unsigned char *rgba = malloc(indexes->count * 4);
-  if (rgba == NULL) {
-    *error = GIF_ERR_MEMIO;
-    gif_index_list_free(indexes);
-    return;
-  }
-
-  for (int idx = 0, offset = 0; idx < indexes->count; idx++, offset += 4) {
-    unsigned char color_index = indexes->elements[idx];
-
-    // TODO: Support interlacing.
-    if (
-      image->gc != NULL &&
-      image->gc->transparency_flag &&
-      color_index == image->gc->transparent_color_index
-    ) {
-      memset(rgba + offset, 0, 4);
-    } else {
-      rgba[offset + 0] = color_table[color_index].red;
-      rgba[offset + 1] = color_table[color_index].green;
-      rgba[offset + 2] = color_table[color_index].blue;
-      rgba[offset + 3] = 255;
-    }
   }
 
   decoded->rgba = rgba;
