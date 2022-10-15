@@ -318,6 +318,7 @@ gif_image_block_t *gif_read_image_block(
     }
 
     image->color_table = table;
+    image->descriptor.color_table_size = color_table_size;
   }
 
   // Copy all image blocks.
