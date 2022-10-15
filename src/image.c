@@ -27,6 +27,26 @@ animated_image_t *image_from_decoded_gif(gif_decoded_t *gif, int *error) {
     return NULL;
   }
 
+  unsigned char *canvas = calloc(gif->width * gif->height * 4, 1);
+  if (canvas == NULL) {
+    free(output);
+    *error = GIF_ERR_MEMIO;
+    return NULL;
+  }
+
+  if (gif->background_color != NULL) {
+    unsigned char back[] = {
+      gif->background_color->red,
+      gif->background_color->green,
+      gif->background_color->blue,
+      255
+    };
+
+    for (int idx = 0; idx < (gif->width * gif->height * 4); idx += 4) {
+      memcpy(canvas + idx, back, 4);
+    }
+  }
+
   if (gif->animated) {
     output->frames = malloc(sizeof(image_frame_t) * gif->image_count);
     if (output->frames == NULL) {
@@ -34,8 +54,6 @@ animated_image_t *image_from_decoded_gif(gif_decoded_t *gif, int *error) {
       free(output);
       return NULL;
     }
-
-    unsigned char *canvas = calloc(gif->width * gif->height, 4);
 
     for (int idx = 0; idx < gif->image_count; idx++) {
       gif_draw_frame(
@@ -53,6 +71,7 @@ animated_image_t *image_from_decoded_gif(gif_decoded_t *gif, int *error) {
     }
 
     output->frame_count = gif->image_count;
+    free(canvas);
   } else {
     output->frames = malloc(sizeof(image_frame_t));
     if (output->frames == NULL) {
@@ -61,14 +80,13 @@ animated_image_t *image_from_decoded_gif(gif_decoded_t *gif, int *error) {
       return NULL;
     }
 
-    unsigned char *rgba = malloc(gif->width * gif->height * 4);
     for (int idx = 0; idx < gif->image_count; idx++) {
       gif_decoded_image_t *image = gif->images + idx;
-      gif_draw_subimage(rgba, image, gif->width, gif->height);
+      gif_draw_subimage(canvas, image, gif->width, gif->height);
     }
 
     output->frame_count = 1;
-    output->frames->rgba = rgba;
+    output->frames->rgba = canvas;
     output->frames->duration_ms = 0;
   }
 
