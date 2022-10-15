@@ -247,15 +247,15 @@ gif_gc_block_t *gif_read_gc_block(
   // 000 - reserverd for future use
   // ddd - disposal method
   // u - user input flag
-  // t - trasparency color index
+  // t - trasparency flag
   unsigned char settings_byte = data[start + 1];
   out->dispose_method = (settings_byte & 0x1C) >> 2;
   out->input_flag = (settings_byte & 0x2) >> 1;
   out->transparency_flag = (settings_byte & 0x1);
 
-  // Frame delay time.
+  // Frame delay time. If zero, assume 100 milliseconds.
   u_int16_t delay_time = *(u_int16_t*)(data + start + 2);
-  out->delay_cs = delay_time;
+  out->delay_cs = (delay_time > 0) ? delay_time : 10;
 
   // Transparent color index.
   out->transparent_color_index = data[start + 4];
@@ -321,12 +321,7 @@ gif_image_block_t *gif_read_image_block(
     image->descriptor.color_table_size = color_table_size;
   }
 
-  // Copy all image blocks.
-  //
-  // TODO: Not sure how the data is chunked into sub-blocks. Either we take the
-  // encoded data stream and just slice it into sub-256 byte chunks, or we take
-  // the code streams, and gradually fill up each chunk, until no more codes
-  // fit in, and then pad the chunk with zeroes to make it to full byte size.
+  // Concatenate all image blocks.
   size_t offset = start + 9 + color_table_size * 3, block_size = 0, data_size = 0;
   unsigned char *image_data = NULL;
 
@@ -393,7 +388,14 @@ gif_parsed_t *gif_parsed_from_file(const char *filename, int *error) {
   gif->screen.width = width;
   gif->screen.height = height;
 
-  // Color table info.
+  // Color table info, packed into a byte: f|rrr|s|ccc
+  // f - global color table flag
+  // rrr - color resolution
+  // s - sort flag
+  // ccc - color table resolution
+  //
+  // "Resolution" specifies the number of bits required to store all colors.
+  // The color table size equals 2^(resolution+1).
   unsigned char color_table_info = data[10];
   if (color_table_info & 128) {
     unsigned char color_table_res = (color_table_info & 0x70) >> 4;
