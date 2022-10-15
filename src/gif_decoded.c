@@ -248,6 +248,7 @@ u_int64_t gif_read_next_code(
     // Substract the number of bits read from the total expected code size.
     bits_left -= (8 - shift_right);
   }
+
   *output = result;
   return (offset + code_size);
 }
@@ -327,7 +328,7 @@ unsigned char *gif_decode_image_data(
     if (is_end) {
       sequence = NULL;
       break;
-    } else if (is_reset || (expect_reset && bit_offset == code_size)) {
+    } else if (is_reset) {
       // Reset table.
       gif_lzw_code_table_free(table);
       table = gif_lzw_code_table_init(color_table_size);
@@ -340,6 +341,25 @@ unsigned char *gif_decode_image_data(
       // Output first index after reset and initialize code buffer.
       bit_offset = gif_read_next_code(&current_code, data, bit_offset, code_size);
       sequence = gif_lzw_code_table_element_at(table, current_code, &is_reset, &is_end);
+      rgba_offset = gif_rgba_add_sequence(
+        rgba,
+        rgba_offset,
+        sequence,
+        color_table,
+        transparent_color_index
+      );
+
+      // Initialize code buffer.
+      seq_size = (u_int16_t *)sequence;
+      memcpy(buffer, sequence, *seq_size + 2);
+    } else if (expect_reset && bit_offset == code_size) {
+      // Why this weird condition? Because some GIFs ignore standard's
+      // recommendation to put CLEAR code as a first code in the data stream.
+      // We have to treat it as a normal situation and do initialization as if
+      // the clear code was there.
+      expect_reset = 0;
+
+      // Output the code.
       rgba_offset = gif_rgba_add_sequence(
         rgba,
         rgba_offset,
