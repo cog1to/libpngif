@@ -46,7 +46,6 @@ int main(int argc, char **argv) {
       if (block->type == GIF_BLOCK_IMAGE) {
         printf("%d: IMAGE BLOCK\n", idx);
         gif_image_block_t *image = (gif_image_block_t *)block;
-        printf("  MIN CODE SIZE: %d\n", image->minimum_code_size);
 
         // Descriptor.
         printf("  OFFSET: %d TOP, %d LEFT\n", image->descriptor.top, image->descriptor.left);

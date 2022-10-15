@@ -320,13 +320,14 @@ unsigned char *gif_decode_image_data(
   // First code that is read has to be a RESET/CLEAR code.
   int expect_reset = 1;
 
+  // TODO: Support interlacing.
   while (1) {
     bit_offset = gif_read_next_code(&current_code, data, bit_offset, code_size);
     sequence = gif_lzw_code_table_element_at(table, current_code, &is_reset, &is_end);
     if (is_end) {
       sequence = NULL;
       break;
-    } else if (is_reset) {
+    } else if (is_reset || (expect_reset && bit_offset == code_size)) {
       // Reset table.
       gif_lzw_code_table_free(table);
       table = gif_lzw_code_table_init(color_table_size);
@@ -351,6 +352,8 @@ unsigned char *gif_decode_image_data(
       seq_size = (u_int16_t *)sequence;
       memcpy(buffer, sequence, *seq_size + 2);
     } else {
+      // We were expecting code table reset, but got a normal code.
+      // This is an encoding error.
       if (expect_reset) {
         *error = GIF_ERR_NO_RESET;
         break;
