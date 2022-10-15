@@ -1,5 +1,6 @@
 #import <Cocoa/Cocoa.h>
 #import <gif_decoded.h>
+#import <image.h>
 #import <animator.h>
 
 /** Image data **/
@@ -82,6 +83,48 @@
   }
   return self;
 }
+
+-(id)initWithImage:(animated_image_t *)image {
+  if (self = [super init]) {
+    if (image == NULL) {
+      return self;
+    }
+
+    if (image->frame_count == 0 || image->frames == NULL) {
+      return self;
+    }
+
+    NSMutableArray *output = [[[NSMutableArray alloc] init] autorelease];
+
+    for (int idx = 0; idx < image->frame_count; idx++) {
+      image_frame_t frame = image->frames[idx];
+
+      NSBitmapImageRep *newRep = [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:&frame.rgba
+        pixelsWide:image->width
+        pixelsHigh:image->height
+        bitsPerSample:8
+        samplesPerPixel:4
+        hasAlpha:YES
+        isPlanar:NO
+        colorSpaceName:NSDeviceRGBColorSpace
+        bytesPerRow:4 * image->width
+        bitsPerPixel:32];
+
+      NSImage* nsimage = [[NSImage alloc] initWithSize:NSMakeSize(image->width, image->height)];
+      [nsimage addRepresentation: newRep];
+
+      ImageHolder *holder = [[ImageHolder alloc] initWithImage:nsimage delay: frame.duration_ms / 10];
+
+      [output addObject: holder];
+    }
+
+    images = output;
+    frame_index = 0;
+    running = NO;
+  }
+  return self;
+}
+
 
 -(void)setImageView:(NSImageView *)iv {
   imageView = iv;

@@ -3,8 +3,9 @@ SRC_FILES := $(wildcard $(SRC_DIR)/*.c)
 UNAME := $(shell uname)
 
 ifeq ($(UNAME), Darwin)
-	CFLAGS += -D OS_MAC -framework Cocoa
-	DECODED_TARGET += -Isupport/ test/test_decoded.m support/animator.m
+	CFLAGS += -D OS_MAC -framework Cocoa -Isupport/
+	DECODED_TARGET += test/test_decoded.m support/animator.m
+	IMAGE_GIF_TARGET += test/test_image_gif.m support/animator.m
 else
 	CFLAGS += -D OS_LINUX
 	DECODED_TARGET += test/test_decoded.c
@@ -19,8 +20,12 @@ test_codes: $(SRC_FILES) test/test_read_code.c
 test_decoded: $(SRC_FILES) test/test_decoded.c
 	gcc --debug -Wall -o bin/test_decoded -Isrc/ $(CFLAGS) $(SRC_FILES) $(DECODED_TARGET)
 
+test_image_gif: $(SRC_FILES) $(IMAGE_GIF_TARGET)
+	gcc --debug -Wall -o bin/test_image_gif -Isrc/ $(CFLAGS) $(SRC_FILES) $(IMAGE_GIF_TARGET)
+
 tests: $(SRC_FILES)
 	make test_parsed
 	make test_codes
 	make test_decoded
+	make test_image_gif
 
