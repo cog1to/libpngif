@@ -287,6 +287,7 @@ unsigned char *gif_decode_image_data(
   u_int32_t height,
   gif_color_t *color_table,
   unsigned char *transparent_color_index,
+  int interlaced,
   int *error
 ) {
   int code_size = min_code_size + 1;
@@ -321,7 +322,6 @@ unsigned char *gif_decode_image_data(
   // First code that is read has to be a RESET/CLEAR code.
   int expect_reset = 1;
 
-  // TODO: Support interlacing.
   while (1) {
     bit_offset = gif_read_next_code(&current_code, data, bit_offset, code_size);
     sequence = gif_lzw_code_table_element_at(table, current_code, &is_reset, &is_end);
@@ -429,6 +429,33 @@ unsigned char *gif_decode_image_data(
     }
   }
 
+  if (interlaced) {
+    unsigned char *deinterlaced = malloc(width * height * 4);
+    if (deinterlaced == NULL) {
+      free(rgba);
+      *error = GIF_ERR_MEMIO;
+      return NULL;
+    }
+
+    // Interweave decoded data into output according to interlacing rules.
+    static int pass_offset[] = { 0, 4, 2, 1 };
+    static int pass_stride[] = { 8, 8, 4, 2 };
+    u_int32_t line_in = 0;
+    for (int pass = 0; pass < 4; pass++) {
+      for (
+        u_int32_t line_out = pass_offset[pass];
+        line_out < height;
+        line_out += pass_stride[pass], line_in++
+      ) {
+        memcpy(deinterlaced + (width * line_out * 4), rgba + (width * line_in * 4), width * 4);
+      }
+    }
+
+    // Swap output with deinterlaced data.
+    free(rgba);
+    rgba = deinterlaced;
+  }
+
   return rgba;
 }
 
@@ -470,6 +497,7 @@ void gif_decode_image_block(
     image->descriptor.height,
     color_table,
     transparent_color_index,
+    image->descriptor.interlace,
     error
   );
 
