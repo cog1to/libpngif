@@ -139,6 +139,7 @@ void gif_draw_subimage(
   for (int line = 0; line < image->height; line++) {
     for (int pixel = 0; pixel < image->width; pixel++) {
       unsigned char *colors = image->rgba + (image->width * line + pixel) * 4;
+      // Ignore transparent pixel. Overwrite every other pixel.
       if (colors[3] != 0) {
         memcpy(
           rgba + (width * (image->top + line) * 4) + (image->left + pixel) * 4,

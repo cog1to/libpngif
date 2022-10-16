@@ -1,3 +1,9 @@
+/**
+ * A test to verify LZW code reading algorithm. The main function `decode`
+ * takes an LZW-encoded data array, transforms it into a list of codes, and
+ * compares to an expected code sequence.
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 

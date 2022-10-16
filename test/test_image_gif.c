@@ -1,3 +1,9 @@
+/**
+ * Takes a GIF file, decodes it into animated_image_t, and displays
+ * each frame. Requires a window system to work, since it creates a
+ * window to show the final result.
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

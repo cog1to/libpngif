@@ -1,3 +1,8 @@
+/**
+ * Takes a GIF file, parses it into separate blocks, and dumps each block's
+ * content into STDIO.
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
