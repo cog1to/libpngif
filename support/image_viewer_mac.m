@@ -1,47 +1,8 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#import <Cocoa/Cocoa.h>
 
-#include <errors.h>
-#include <gif_parsed.h>
-#include <gif_decoded.h>
-
-#import "Cocoa/Cocoa.h"
+#import "image.h"
 #import "animator.h"
 #import "appdelegate.h"
-
-int max_wsize(int a, int b);
-void show_decoded_image(gif_decoded_t *gif);
-NSArray *images_from_decoded(gif_decoded_t *gif);
-
-int main(int argc, char **argv) {
-  if (argc < 2) {
-    printf("Usage: %s <filepath>\n", argv[0]);
-    return 0;
-  }
-
-  int error = 0;
-  gif_parsed_t *raw = gif_parsed_from_file(argv[1], &error);
-
-  if (error != 0 || raw == NULL) {
-    printf("File read error: %d\n", error);
-    return -1;
-  }
-
-  gif_decoded_t *dec = gif_decoded_from_parsed(raw, &error);
-
-  if (error != 0 || dec == NULL) {
-    printf("Decoding error: %d\n", error);
-    return -1;
-  }
-
-  show_decoded_image(dec);
-  gif_decoded_free(dec);
-
-  return 0;
-}
-
-/** Private **/
 
 int max_wsize(int a, int b) {
   if (a > b)
@@ -49,9 +10,7 @@ int max_wsize(int a, int b) {
   return b;
 }
 
-static const int border = 20;
-
-void show_decoded_image(gif_decoded_t *gif) {
+void window_with_image_animator(int width, int height, Animator *animator) {
   NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
 
   [NSApplication sharedApplication];
@@ -60,8 +19,9 @@ void show_decoded_image(gif_decoded_t *gif) {
     | NSWindowStyleMaskClosable
     | NSWindowStyleMaskResizable;
 
-  int wwidth = max_wsize(100, gif->width + border);
-  int wheight = max_wsize(100, gif->height + border);
+  int border = 10;
+  int wwidth = max_wsize(100, width + border);
+  int wheight = max_wsize(100, height + border);
 
   NSRect windowRect = NSMakeRect(
     100,
@@ -85,16 +45,16 @@ void show_decoded_image(gif_decoded_t *gif) {
   [appDelegate autorelease];
 
   NSRect imageRect = NSMakeRect(
-    (wwidth - gif->width) / 2.0,
-    (wheight - gif->height) / 2.0,
-    gif->width,
-    gif->height
+    (wwidth - width) / 2.0,
+    (wheight - height) / 2.0,
+    width,
+    height
   );
 
   NSImageView *imageView = [[[NSImageView alloc] initWithFrame:imageRect] autorelease];
   [[window contentView] addSubview:imageView];
 
-  Animator *animator = [[Animator alloc] initWithDecodedGif:(gif)];
+  // Bind animator to image view and start animation.
   [animator setImageView: imageView];
   [animator start];
 
@@ -105,3 +65,12 @@ void show_decoded_image(gif_decoded_t *gif) {
   [pool drain];
 }
 
+void show_image_mac(animated_image_t *image) {
+  Animator *animator = [[[Animator alloc] initWithImage:image] autorelease];
+  window_with_image_animator(image->width, image->height, animator);
+}
+
+void show_decoded_gif_mac(gif_decoded_t *gif) {
+  Animator *animator = [[[Animator alloc] initWithDecodedGif:gif] autorelease];
+  window_with_image_animator(gif->width, gif->height, animator);
+}

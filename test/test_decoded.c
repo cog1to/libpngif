@@ -6,6 +6,10 @@
 #include <gif_parsed.h>
 #include <gif_decoded.h>
 
+#include "image_viewer.h"
+
+void show_decoded_image(gif_decoded_t *gif);
+
 int main(int argc, char **argv) {
   if (argc < 2) {
     printf("Usage: %s <filepath>\n", argv[0]);
@@ -27,6 +31,18 @@ int main(int argc, char **argv) {
     return -1;
   }
 
+  show_decoded_image(dec);
+  gif_decoded_free(dec);
+
   return 0;
 }
 
+/** Private **/
+
+void show_decoded_image(gif_decoded_t *gif) {
+#ifdef OS_MAC
+  show_decoded_gif_mac(gif);
+#else
+  show_decoded_gif_linux(gif);
+#endif
+}
