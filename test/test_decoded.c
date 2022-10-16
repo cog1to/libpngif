@@ -46,9 +46,5 @@ int main(int argc, char **argv) {
 /** Private **/
 
 void show_decoded_image(gif_decoded_t *gif) {
-#ifdef OS_MAC
-  show_decoded_gif_mac(gif);
-#else
-  show_decoded_gif_linux(gif);
-#endif
+  show_decoded_gif(gif);
 }

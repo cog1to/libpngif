@@ -15,8 +15,6 @@
 
 #include "image_viewer.h"
 
-void show_image(animated_image_t *gif);
-
 int main(int argc, char **argv) {
   if (argc < 2) {
     printf("Usage: %s [-b] <filepath>\n", argv[0]);
@@ -63,14 +61,3 @@ int main(int argc, char **argv) {
 
   return 0;
 }
-
-/** Private **/
-
-void show_image(animated_image_t *image) {
-#ifdef OS_MAC
-  show_image_mac(image);
-#else
-  show_image_linux(image);
-#endif
-}
-

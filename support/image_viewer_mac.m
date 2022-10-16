@@ -65,12 +65,12 @@ void window_with_image_animator(int width, int height, Animator *animator) {
   [pool drain];
 }
 
-void show_image_mac(animated_image_t *image) {
+void show_image(animated_image_t *image) {
   Animator *animator = [[[Animator alloc] initWithImage:image] autorelease];
   window_with_image_animator(image->width, image->height, animator);
 }
 
-void show_decoded_gif_mac(gif_decoded_t *gif) {
+void show_decoded_gif(gif_decoded_t *gif) {
   Animator *animator = [[[Animator alloc] initWithDecodedGif:gif] autorelease];
   window_with_image_animator(gif->width, gif->height, animator);
 }
