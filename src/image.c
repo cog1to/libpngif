@@ -121,6 +121,15 @@ void image_frame_free(image_frame_t *frame) {
   free(frame);
 }
 
+/**
+ * Draws a decoded image block into overall image "canvas".
+ *
+ * @param rgba Full image canvas container. It has to be at least as large as
+ *   the image being drawn into it.
+ * @param image Image data to draw into canvas.
+ * @param width Width of the canvas.
+ * @param height Height of the canvas.
+ */
 void gif_draw_subimage(
   unsigned char *rgba,
   gif_decoded_image_t *image,
@@ -141,6 +150,23 @@ void gif_draw_subimage(
   }
 }
 
+/**
+ * Draws a decoded image block as an image frame. Takes into account the
+ * previous canvas state and frame's disposal method to update canvas state
+ * for next frame drawing.
+ *
+ * @param frame Target frame container. It will hold the drawn frame data.
+ * @param canvas Image canvas in a state before drawing the target frame.
+ * @param width Canvas width.
+ * @param height Canvas height.
+ * @param background_color Background color value (from Logical Screen
+ *   Descriptor).
+ * @param image Image block to draw into the frame.
+ * @param ignore_background Flag indicating whether we should ignore provided
+ *   background color value (for better compliance with modern browser
+ *   rendering).
+ * @param error Return error value.
+ */
 void gif_draw_frame(
   image_frame_t *frame,
   unsigned char *canvas,

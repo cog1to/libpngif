@@ -7,7 +7,7 @@
 
 /** Utils **/
 
-size_t max_size(size_t a, size_t b) {
+size_t gif_max_size(size_t a, size_t b) {
   if (a > b) {
     return a;
   } else {
@@ -15,11 +15,26 @@ size_t max_size(size_t a, size_t b) {
   }
 }
 
-int8_t max_int8(int8_t a, int8_t b) {
-  if (a > b) {
-    return a;
-  } else {
-    return b;
+unsigned char gif_bit_mask(size_t bits) {
+  switch (bits) {
+  case 0:
+    return 0;
+  case 1:
+    return 1;
+  case 2:
+    return 3;
+  case 3:
+    return 7;
+  case 4:
+    return 15;
+  case 5:
+    return 31;
+  case 6:
+    return 63;
+  case 7:
+    return 127;
+  default:
+    return 255;
   }
 }
 
@@ -41,6 +56,14 @@ typedef struct {
   unsigned char *elements;
 } gif_lzw_code_table;
 
+/**
+ * Creates a new code table, initializes it with codes corresponding to color
+ * table.
+ *
+ * @param color_table_size Number of colors in a color table.
+ *
+ * @return New instance of a code table.
+ */
 gif_lzw_code_table *gif_lzw_code_table_init(size_t color_table_size) {
   gif_lzw_code_table *table = calloc(1, sizeof(gif_lzw_code_table));
   if (table == NULL) {
@@ -67,6 +90,11 @@ gif_lzw_code_table *gif_lzw_code_table_init(size_t color_table_size) {
   return table;
 }
 
+/**
+ * Deallocates code table.
+ *
+ * @param table Code table to deallocate.
+ */
 void gif_lzw_code_table_free(gif_lzw_code_table *table) {
   if (table == NULL)
     return;
@@ -77,6 +105,18 @@ void gif_lzw_code_table_free(gif_lzw_code_table *table) {
   free(table);
 }
 
+/**
+ * Increases the size of the given code table
+ *
+ * @param old Code table to expand.
+ * @param new_size New max number of elements.
+ * @param new_stride New max length of a color index sequence for a code.
+ *
+ * @return A pointer to the same code table. NULL in case of an error.
+ */
+// TODO: Potential memory leak. If caller doesn't know that the result is
+// pointing to the same code table, it could lose the original pointer and
+// leave the memory hanging forever.
 gif_lzw_code_table *gif_lzw_code_table_resize(
   gif_lzw_code_table *old,
   size_t new_size,
@@ -111,6 +151,17 @@ gif_lzw_code_table *gif_lzw_code_table_resize(
   return old;
 }
 
+/**
+ * Returns an index sequence for a given code.
+ *
+ * @param table The code will be searched in this code table.
+ * @param index Code value.
+ * @param is_clear Output flag indicating whether the code is a clear code.
+ * @param is_end Output flag indicating whether the code is an end of data code.
+ *
+ * @return A pointer to the beginning of the index sequence, or NULL in case of
+ *   a special code (CLEAR or END) or if code is not yet in the table.
+ */
 unsigned char *gif_lzw_code_table_element_at(
   gif_lzw_code_table *table,
   size_t index,
@@ -140,6 +191,15 @@ unsigned char *gif_lzw_code_table_element_at(
   return table->elements + (index * table->stride);
 }
 
+/**
+ * Adds new index sequence to the code table.
+ *
+ * @param table Table to append new index sequence into.
+ * @param element Index sequence to add.
+ * @param error Error output.
+ *
+ * @return New element count after adding the sequence.
+ */
 size_t gif_lzw_code_table_append_element(
   gif_lzw_code_table *table,
   unsigned char *element,
@@ -153,7 +213,7 @@ size_t gif_lzw_code_table_append_element(
       ? (table->size * 2)
       : table->size;
     size_t new_stride = (*elsize > (table->stride - 2))
-      ? max_size(table->stride * 2, *elsize + 2)
+      ? gif_max_size(table->stride * 2, *elsize + 2)
       : table->stride;
 
     gif_lzw_code_table *new_table = gif_lzw_code_table_resize(
@@ -177,29 +237,6 @@ size_t gif_lzw_code_table_append_element(
 
 /** Private **/
 
-unsigned char bit_mask(size_t bits) {
-  switch (bits) {
-  case 0:
-    return 0;
-  case 1:
-    return 1;
-  case 2:
-    return 3;
-  case 3:
-    return 7;
-  case 4:
-    return 15;
-  case 5:
-    return 31;
-  case 6:
-    return 63;
-  case 7:
-    return 127;
-  default:
-    return 255;
-  }
-}
-
 /**
  * LZW compression packs "codes" into bytes on bit-by-bit basis, i. e.
  * the data stream is treated as bit stream, not byte stream. After a code
@@ -217,6 +254,17 @@ unsigned char bit_mask(size_t bits) {
  *
  * This makes the decoding a little tricky, as you'll see in the code below.
  */
+
+/**
+ * Reads next code from the code data stream.
+ *
+ * @param output Pointer to the output value.
+ * @param data Data stream.
+ * @param offset Current bit offset in the data stream.
+ * @param code_size Code size, i. e. number of bits to read.
+ *
+ * @return Bit offset after reading the code.
+ */
 u_int64_t gif_read_next_code(
   u_int16_t *output,
   unsigned char *data,
@@ -227,6 +275,7 @@ u_int64_t gif_read_next_code(
   int bits_left = code_size;
   int byte_value, result = 0;
 
+  // This could probably be heavily optimised, but I'm not smort enough.
   while (bits_left > 0) {
     // Get what byte we're in right now.
     int current_byte = current_offset / 8;
@@ -238,7 +287,7 @@ u_int64_t gif_read_next_code(
     // Shift right to erase previous code data.
     byte_value = byte_value >> shift_right;
     // Erase everything past current code's end.
-    byte_value = byte_value & (bit_mask(bits_left));
+    byte_value = byte_value & (gif_bit_mask(bits_left));
 
     // Add what's left to the resulting code value, in a proper position.
     result = result + (byte_value << (code_size - bits_left));
@@ -253,6 +302,18 @@ u_int64_t gif_read_next_code(
   return (offset + code_size);
 }
 
+/**
+ * Converts color index sequence into colors and adds it to the color data
+ * storage.
+ *
+ * @param rgba Color data storage to append to.
+ * @param offset Offset to the next unfilled pixel in the storage.
+ * @param sequence Color index sequence to add to the storage.
+ * @param color_table Color table to look up colors from color indices.
+ * @param transparent_color_index Optional color index for transparent pixels.
+ *
+ * @return Offset to the next unfilled pixel after adding the sequence.
+ */
 int gif_rgba_add_sequence(
   unsigned char *rgba,
   u_int32_t offset,
@@ -279,6 +340,22 @@ int gif_rgba_add_sequence(
   return new_offset;
 }
 
+/**
+ * Decodes LZW-encoded image data into RGBA color data.
+ *
+ * @param data Data to decode.
+ * @param min_code_size Minimum code size (from image block data).
+ * @param color_table_size Number of colors in the color table.
+ * @param width Image width.
+ * @param height Image height.
+ * @param color_table Color table.
+ * @param transparent_color_index Optional color index of a color that should
+ *   be treated as full transparency.
+ * @param interlaced Flag indicating whether the image is interlaced.
+ * @param error Output error code.
+ *
+ * @return Decoded image data in RGBA format.
+ */
 unsigned char *gif_decode_image_data(
   unsigned char *data,
   unsigned char min_code_size,
@@ -459,6 +536,15 @@ unsigned char *gif_decode_image_data(
   return rgba;
 }
 
+/**
+ * Decoded a single image block.
+ *
+ * @param decoded Decoded data container. Will be filled with decoded data.
+ * @param image Image block to decode.
+ * @param global_color_table_size Global color table size, if present.
+ * @param global_color_table A pointer to a global color table, if present.
+ * @param error Output error code.
+ */
 void gif_decode_image_block(
   gif_decoded_image_t *decoded,
   gif_image_block_t *image,
@@ -488,7 +574,7 @@ void gif_decode_image_block(
     transparent_color_index = &(image->gc->transparent_color_index);
   }
 
-  // Decode image data into index list.
+  // Decode image data into RGBA.
   unsigned char *rgba = gif_decode_image_data(
     image->data,
     image->minimum_code_size,
