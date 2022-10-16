@@ -13,11 +13,11 @@
 
 void image_frame_free(image_frame_t *frame);
 void gif_draw_subimage(unsigned char *rgba, gif_decoded_image_t *image, u_int32_t width, u_int32_t height);
-void gif_draw_frame(image_frame_t *frame, unsigned char *canvas, u_int32_t width, u_int32_t height, gif_color_t *background_color, gif_decoded_image_t *image, int *error);
+void gif_draw_frame(image_frame_t *frame, unsigned char *canvas, u_int32_t width, u_int32_t height, gif_color_t *background_color, gif_decoded_image_t *image, int ignore_background, int *error);
 
 /** Public **/
 
-animated_image_t *image_from_decoded_gif(gif_decoded_t *gif, int *error) {
+animated_image_t *image_from_decoded_gif(gif_decoded_t *gif, int ignore_background, int *error) {
   if (gif == NULL)
     return NULL;
 
@@ -34,7 +34,7 @@ animated_image_t *image_from_decoded_gif(gif_decoded_t *gif, int *error) {
     return NULL;
   }
 
-  if (gif->background_color != NULL) {
+  if (!ignore_background && gif->background_color != NULL) {
     unsigned char back[] = {
       gif->background_color->red,
       gif->background_color->green,
@@ -63,6 +63,7 @@ animated_image_t *image_from_decoded_gif(gif_decoded_t *gif, int *error) {
         gif->height,
         gif->background_color,
         gif->images + idx,
+        ignore_background,
         error
       );
 
@@ -147,6 +148,7 @@ void gif_draw_frame(
   u_int32_t height,
   gif_color_t *background_color,
   gif_decoded_image_t *image,
+  int ignore_background,
   int *error
 ) {
   unsigned char *rgba = malloc(width * height * 4);
@@ -171,13 +173,15 @@ void gif_draw_frame(
     break;
   case DISPOSE_BACKGROUND:
     // Canvas is set to background color.
-    if (background_color != NULL) {
+    if (!ignore_background && background_color != NULL) {
       for (int pixel = 0; pixel < (width * height); pixel++) {
         canvas[pixel * 4 + 0] = background_color->red;
         canvas[pixel * 4 + 1] = background_color->green;
         canvas[pixel * 4 + 2] = background_color->blue;
         canvas[pixel * 4 + 3] = 255;
       }
+    } else {
+      memset(canvas, 0, (width * height * 4));
     }
     break;
   case DISPOSE_RESTORE:

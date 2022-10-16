@@ -15,12 +15,22 @@ void show_image(animated_image_t *gif);
 
 int main(int argc, char **argv) {
   if (argc < 2) {
-    printf("Usage: %s <filepath>\n", argv[0]);
+    printf("Usage: %s [-b] <filepath>\n", argv[0]);
+    printf("Options:\n  -b: Ignore background color\n");
     return 0;
   }
 
+  int ignore_background = 0;
+  if (argc > 2) {
+    if (strcmp(argv[1], "-b") == 0) {
+      ignore_background = 1;
+    } else {
+      printf("Unknown option: %s", argv[1]);
+    }
+  }
+
   int error = 0;
-  gif_parsed_t *raw = gif_parsed_from_file(argv[1], &error);
+  gif_parsed_t *raw = gif_parsed_from_file(argv[argc - 1], &error);
 
   if (error != 0 || raw == NULL) {
     printf("File read error: %d\n", error);
@@ -34,7 +44,7 @@ int main(int argc, char **argv) {
     return -1;
   }
 
-  animated_image_t *image = image_from_decoded_gif(dec, &error);
+  animated_image_t *image = image_from_decoded_gif(dec, ignore_background, &error);
 
   if (error != 0 || image == NULL) {
     printf("Image drawing error: %d\n", error);
