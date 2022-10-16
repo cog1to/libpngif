@@ -8,6 +8,7 @@
 
 #import "Cocoa/Cocoa.h"
 #import "animator.h"
+#import "appdelegate.h"
 
 int max_wsize(int a, int b);
 void show_decoded_image(gif_decoded_t *gif);
@@ -76,6 +77,12 @@ void show_decoded_image(gif_decoded_t *gif) {
 
   NSWindowController * windowController = [[NSWindowController alloc] initWithWindow:window];
   [windowController autorelease];
+
+  // Set up AppDelegate. Right now used only to properly close the app when
+  // window is closed.
+  ViewerAppDelegate *appDelegate = [[ViewerAppDelegate alloc] init];
+  [[NSApplication sharedApplication] setDelegate: appDelegate];
+  [appDelegate autorelease];
 
   NSRect imageRect = NSMakeRect(
     (wwidth - gif->width) / 2.0,

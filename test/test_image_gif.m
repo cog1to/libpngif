@@ -9,6 +9,7 @@
 
 #import "Cocoa/Cocoa.h"
 #import "animator.h"
+#import "appdelegate.h"
 
 int max_wsize(int a, int b);
 void show_image(animated_image_t *gif);
@@ -96,6 +97,12 @@ void show_image(animated_image_t *image) {
 
   NSWindowController * windowController = [[NSWindowController alloc] initWithWindow:window];
   [windowController autorelease];
+
+  // Set up AppDelegate. Right now used only to properly close the app when
+  // window is closed.
+  ViewerAppDelegate *appDelegate = [[ViewerAppDelegate alloc] init];
+  [[NSApplication sharedApplication] setDelegate: appDelegate];
+  [appDelegate autorelease];
 
   NSRect imageRect = NSMakeRect(
     (wwidth - image->width) / 2.0,
