@@ -622,6 +622,11 @@ gif_decoded_t *gif_decoded_from_parsed(gif_parsed_t *parsed, int *error) {
   if (parsed->screen.background_color_index > 0 && parsed->global_color_table != NULL) {
     gif_color_t color = parsed->global_color_table[parsed->screen.background_color_index];
     decoded->background_color = malloc(sizeof(gif_color_t));
+    if (decoded->background_color == NULL) {
+      free(decoded);
+      *error = GIF_ERR_MEMIO;
+      return NULL;
+    }
     memcpy(decoded->background_color, &color, 3);
   }
 
