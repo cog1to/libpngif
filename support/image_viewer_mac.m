@@ -13,7 +13,7 @@ int max_wsize(int a, int b) {
 void window_with_image_animator(int width, int height, Animator *animator) {
   NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
 
-  [NSApplication sharedApplication];
+  NSApplication *app = [NSApplication sharedApplication];
 
   NSUInteger windowStyle = NSWindowStyleMaskTitled
     | NSWindowStyleMaskClosable
@@ -40,9 +40,8 @@ void window_with_image_animator(int width, int height, Animator *animator) {
 
   // Set up AppDelegate. Right now used only to properly close the app when
   // window is closed.
-  ViewerAppDelegate *appDelegate = [[ViewerAppDelegate alloc] init];
-  [[NSApplication sharedApplication] setDelegate: appDelegate];
-  [appDelegate autorelease];
+  ViewerAppDelegate *appDelegate = [[[ViewerAppDelegate alloc] init] autorelease];
+  [app setDelegate: appDelegate];
 
   NSRect imageRect = NSMakeRect(
     (wwidth - width) / 2.0,
@@ -62,6 +61,7 @@ void window_with_image_animator(int width, int height, Animator *animator) {
   [window orderFrontRegardless];
   [NSApp run];
 
+  // Clear memory after app close.
   [pool drain];
 }
 
