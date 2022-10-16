@@ -14,37 +14,28 @@
 
 #include "image_viewer.h"
 
-void show_decoded_image(gif_decoded_t *gif);
-
 int main(int argc, char **argv) {
+  int error = 0;
+
   if (argc < 2) {
     printf("Usage: %s <filepath>\n", argv[0]);
     return 0;
   }
 
-  int error = 0;
-  gif_parsed_t *raw = gif_parsed_from_path(argv[1], &error);
+  gif_decoded_t *dec = gif_decoded_from_path(argv[1], &error);
 
-  if (error != 0 || raw == NULL) {
-    printf("File read error: %d\n", error);
-    return -1;
+  if (dec == NULL) {
+    printf("No dec\n");
   }
-
-  gif_decoded_t *dec = gif_decoded_from_parsed(raw, &error);
 
   if (error != 0 || dec == NULL) {
     printf("Decoding error: %d\n", error);
     return -1;
   }
 
-  show_decoded_image(dec);
+  show_decoded_gif(dec);
   gif_decoded_free(dec);
 
   return 0;
 }
 
-/** Private **/
-
-void show_decoded_image(gif_decoded_t *gif) {
-  show_decoded_gif(gif);
-}

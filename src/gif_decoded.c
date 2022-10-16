@@ -687,6 +687,44 @@ gif_decoded_t *gif_decoded_from_parsed(gif_parsed_t *parsed, int *error) {
   return decoded;
 }
 
+gif_decoded_t *gif_decoded_from_data(unsigned char *data, size_t size, int *error) {
+  if (data == NULL) {
+    *error = GIF_ERR_NO_DATA;
+    return NULL;
+  }
+
+  gif_parsed_t *parsed = gif_parsed_from_data(data, size, error);
+  if (*error != 0) {
+    return NULL;
+  }
+
+  gif_decoded_t *decoded = gif_decoded_from_parsed(parsed, error);
+  free(parsed);
+  return decoded;
+}
+
+gif_decoded_t *gif_decoded_from_file(FILE *file, int *error) {
+  gif_parsed_t *parsed = gif_parsed_from_file(file, error);
+  if (*error != 0) {
+    return NULL;
+  }
+
+  gif_decoded_t *decoded = gif_decoded_from_parsed(parsed, error);
+  free(parsed);
+  return decoded;
+}
+
+gif_decoded_t *gif_decoded_from_path(char *path, int *error) {
+  gif_parsed_t *parsed = gif_parsed_from_path(path, error);
+  if (*error != 0) {
+    return NULL;
+  }
+
+  gif_decoded_t *decoded = gif_decoded_from_parsed(parsed, error);
+  free(parsed);
+  return decoded;
+}
+
 void gif_decoded_free(gif_decoded_t *gif) {
   if (gif->background_color != NULL) {
     free(gif->background_color);

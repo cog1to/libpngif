@@ -53,6 +53,37 @@ typedef struct {
 gif_decoded_t *gif_decoded_from_parsed(gif_parsed_t *parsed, int *error);
 
 /**
+ * Decodes given data into a gif_decoded_t struct.
+ *
+ * @param data GIF data to decode.
+ * @param size Data size.
+ * @param error Error output.
+ *
+ * @return Decoded GIF data, or NULL in case of errors.
+ */
+gif_decoded_t *gif_decoded_from_data(unsigned char *data, size_t size, int *error);
+
+/**
+ * Reads and decodes given file into a gif_decoded_t struct.
+ *
+ * @param file File handle to GIF file.
+ * @param error Error output.
+ *
+ * @return Decoded GIF data, or NULL in case of errors.
+ */
+gif_decoded_t *gif_decoded_from_file(FILE *file, int *error);
+
+/**
+ * Reads and decodes a file at given path into a gif_decoded_t struct.
+ *
+ * @param path Path to the GIF file.
+ * @param error Error output.
+ *
+ * @return Decoded GIF data, or NULL in case of errors.
+ */
+gif_decoded_t *gif_decoded_from_path(char *path, int *error);
+
+/**
  * Frees memory occupied by a decoded GIF data struct.
  *
  * @param gif Decoded gif data.
