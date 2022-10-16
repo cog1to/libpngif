@@ -22,9 +22,8 @@ typedef struct {
 } animated_image_t;
 
 /**
- * Creates animated image from decoded GIF data.
+ * Disclaimer to all methods:
  *
- * @param gif Decoded gif data.
  * @param ignore_background Don't use "background color index" values from the
  *   Logical Screen Description. This flag will make the decoder behave more
  *   like a browser: 1. it doesn't paint the canvas with background color, and
@@ -32,11 +31,61 @@ typedef struct {
  *   canvas with full black transparent color instead of a background color.
  *   This goes kind of against the specification in GIF87 standard, but it's
  *   how modern browsers treat it.
+ */
+
+/**
+ * Creates animated image from decoded GIF data.
+ *
+ * @param gif Decoded gif data.
+ * @param ignore_background Don't use "background color index" values from the
+ *   Logical Screen Description.
  * @param error Return error value.
  *
  * @return Animated image data or NULL in case of any errors.
  */
 animated_image_t *image_from_decoded_gif(gif_decoded_t *gif, int ignore_background, int *error);
+
+/**
+ * Creates animated image from raw GIF data.
+ *
+ * @param data GIF data array.
+ * @param size Data size.
+ * @param ignore_background Don't use "background color index" values from the
+ *   Logical Screen Descriptor.
+ * @param error Return error value.
+ *
+ * @return Animated image data or NULL in case of any errors.
+ */
+animated_image_t *image_from_data(
+  unsigned char *data,
+  size_t size,
+  int ignore_background,
+  int *error
+);
+
+/**
+ * Creates animated image from data read from given file handle.
+ *
+ * @param file File handle to GIF file.
+ * @param ignore_background Don't use "background color index" values from the
+ *   Logical Screen Descriptor.
+ * @param error Return error value.
+ *
+ * @return Animated image data or NULL in case of any errors.
+ */
+animated_image_t *image_from_file(FILE *file, int ignore_background, int *error);
+
+/**
+ * Creates animated image from file at given path.
+ *
+ * @param path Path to GIF file.
+ * @param ignore_background Don't use "background color index" values from the
+ *   Logical Screen Descriptor.
+ * @param error Return error value.
+ *
+ * @return Animated image data or NULL in case of any errors.
+ */
+animated_image_t *image_from_path(char *path, int ignore_background, int *error);
 
 /**
  * Frees the memory allocated for animated image data.

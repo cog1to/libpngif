@@ -96,6 +96,44 @@ animated_image_t *image_from_decoded_gif(gif_decoded_t *gif, int ignore_backgrou
   return output;
 }
 
+animated_image_t *image_from_data(
+  unsigned char *data,
+  size_t size,
+  int ignore_background,
+  int *error
+) {
+  gif_decoded_t *decoded = gif_decoded_from_data(data, size, error);
+  if (*error != 0 || decoded == NULL) {
+    return NULL;
+  }
+
+  animated_image_t *image = image_from_decoded_gif(decoded, ignore_background, error);
+  free(decoded);
+  return image;
+}
+
+animated_image_t *image_from_file(FILE *file, int ignore_background, int *error) {
+  gif_decoded_t *decoded = gif_decoded_from_file(file, error);
+  if (*error != 0 || decoded == NULL) {
+    return NULL;
+  }
+
+  animated_image_t *image = image_from_decoded_gif(decoded, ignore_background, error);
+  free(decoded);
+  return image;
+}
+
+animated_image_t *image_from_path(char *path, int ignore_background, int *error) {
+  gif_decoded_t *decoded = gif_decoded_from_path(path, error);
+  if (*error != 0 || decoded == NULL) {
+    return NULL;
+  }
+
+  animated_image_t *image = image_from_decoded_gif(decoded, ignore_background, error);
+  free(decoded);
+  return image;
+}
+
 void animated_image_free(animated_image_t *image) {
   if (image == NULL)
     return;

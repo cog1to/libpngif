@@ -16,6 +16,8 @@
 #include "image_viewer.h"
 
 int main(int argc, char **argv) {
+  int error = 0;
+
   if (argc < 2) {
     printf("Usage: %s [-b] <filepath>\n", argv[0]);
     printf("Options:\n  -b: Ignore background color\n");
@@ -31,33 +33,15 @@ int main(int argc, char **argv) {
     }
   }
 
-  int error = 0;
-  gif_parsed_t *raw = gif_parsed_from_path(argv[argc - 1], &error);
-
-  if (error != 0 || raw == NULL) {
-    printf("File read error: %d\n", error);
-    return -1;
-  }
-
-  gif_decoded_t *dec = gif_decoded_from_parsed(raw, &error);
-
-  if (error != 0 || dec == NULL) {
-    printf("Decoding error: %d\n", error);
-    return -1;
-  }
-
-  animated_image_t *image = image_from_decoded_gif(dec, ignore_background, &error);
+  animated_image_t *image = image_from_path(argv[argc - 1], ignore_background, &error);
 
   if (error != 0 || image == NULL) {
-    printf("Image drawing error: %d\n", error);
+    printf("Image error: %d\n", error);
     return -1;
   }
 
   show_image(image);
 
-  gif_parsed_free(raw);
-  gif_decoded_free(dec);
   animated_image_free(image);
-
   return 0;
 }
