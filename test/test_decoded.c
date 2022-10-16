@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
   }
 
   int error = 0;
-  gif_parsed_t *raw = gif_parsed_from_file(argv[1], &error);
+  gif_parsed_t *raw = gif_parsed_from_path(argv[1], &error);
 
   if (error != 0 || raw == NULL) {
     printf("File read error: %d\n", error);

@@ -98,14 +98,34 @@ typedef struct {
 /** Interface **/
 
 /**
- * Loads GIF data from a file.
+ * Parses raw GIF data stream into a gif_parsed_t struct.
+ *
+ * @param data GIF data.
+ * @param error Error output.
+ *
+ * @return Parsed GIF data, or NULL in case of fatal errors.
+ */
+gif_parsed_t *gif_parsed_from_data(unsigned char *data, size_t size, int *error);
+
+/**
+ * Loads and parses GIF data from a file handle.
+ *
+ * @param file File to read.
+ * @param error Error output.
+ *
+ * @return Parsed GIF data, or NULL in case of fatal errors.
+ */
+gif_parsed_t *gif_parsed_from_file(FILE *file, int *error);
+
+/**
+ * Loads and parses GIF data from a file.
  *
  * @param filename Path to the file to read.
- * @param error Output error;
+ * @param error Error output.
  *
  * @return Parsed GIF data, or NULL in case of fatal errors.
  **/
-gif_parsed_t* gif_parsed_from_file(const char *filename, int *error);
+gif_parsed_t *gif_parsed_from_path(const char *filename, int *error);
 
 /**
  * Frees memory occupied by a parsed GIF.

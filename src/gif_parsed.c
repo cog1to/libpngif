@@ -16,6 +16,12 @@ static const unsigned char EXT_PLAIN_TEXT = 0x01;
 static const unsigned char EXT_APPLICATION = 0xFF;
 static const unsigned char EXT_COMMENT = 0xFE;
 
+/**
+ * Frees the GIF data block memory. Does a proper data deallocation depending
+ * on the block type.
+ *
+ * @param block Block to deallocate.
+ */
 void gif_free_block(gif_block_t *block) {
   if (block == NULL)
     return;
@@ -44,6 +50,17 @@ void gif_free_block(gif_block_t *block) {
   free(block);
 }
 
+/**
+ * Appends data block to the block list.
+ *
+ * @param list List of block pointers to append to.
+ * @param block Block to append to the list.
+ * @param count Size of the list. Will be updated with the current count after
+ *   append.
+ * @param error Error output.
+ *
+ * @return Pointer to the list holding all previous blocks plus the new one.
+ */
 gif_block_t **append_block(gif_block_t **list, gif_block_t *block, size_t *count, int *error) {
   list = realloc(list, sizeof(gif_block_t *) * (*count + 1));
   if (list != NULL) {
@@ -56,6 +73,12 @@ gif_block_t **append_block(gif_block_t **list, gif_block_t *block, size_t *count
   }
 }
 
+/**
+ * Frees the memory occupied by a block list and its elements.
+ *
+ * @param list Block list to deallocate.
+ * @param count Number of elements in the list.
+ */
 void gif_free_block_list(gif_block_t **list, size_t count) {
   for (int idx = 0; idx < count; idx++) {
     gif_free_block(list[idx]);
@@ -63,6 +86,20 @@ void gif_free_block_list(gif_block_t **list, size_t count) {
   free(list);
 }
 
+/**
+ * Reads consecutive data blocks from the data stream, starting from given
+ * offset until a terminator is encountered, and concatenates them into a
+ * single data array.
+ *
+ * @param output An array pointer that will hold the resulting data.
+ * @param data Input data stream.
+ * @param length Total length of the data stream.
+ * @param offset Offset in the data, from which to start reading data blocks.
+ * @param new_offset Output value to hold offset after reading all data blocks.
+ * @param Error output.
+ *
+ * @return Total number of bytes read.
+ */
 size_t concat_data_blocks(
   unsigned char **output,
   unsigned char *data,
@@ -112,14 +149,16 @@ size_t concat_data_blocks(
   return byte_count;
 }
 
-size_t gif_read_file(const char *filename, unsigned char **output, int *error) {
-  FILE *file = fopen(filename, "r");
-
-  if (file == NULL) {
-    *error = GIF_ERR_FILEIO_CANT_OPEN;
-    return 0;
-  }
-
+/**
+ * Reads a file into a char array.
+ *
+ * @param file File to read.
+ * @param output Pointer that will hold the data that was read.
+ * @param error Error output.
+ *
+ * @return Number of bytes read.
+ */
+size_t gif_read_file(FILE *file, unsigned char **output, int *error) {
   // Get the size.
   fseek(file, 0, SEEK_END);
   size_t size = ftell(file);
@@ -149,6 +188,19 @@ size_t gif_read_file(const char *filename, unsigned char **output, int *error) {
   return read;
 }
 
+/**
+ * Reads text block from the data stream.
+ *
+ * @param type Text block type. Should be either Plain Text or Comment type.
+ * @param data Input data stream.
+ * @param data_length Total length of the data stream.
+ * @param offset Offset to the beginning of the text data blocks section.
+ * @param new_offset Output value to hold new offset after reading all data
+ *   blocks.
+ * @param error Error output.
+ *
+ * @return Text block struct holding the data that was read.
+ */
 gif_text_block_t *gif_read_text_block(
   unsigned char type,
   unsigned char *data,
@@ -189,6 +241,19 @@ gif_text_block_t *gif_read_text_block(
   return text;
 }
 
+/**
+ * Reads application extension block from the data stream.
+ *
+ * @param data Input data stream.
+ * @param length Total length of the data stream.
+ * @param offset Offset to the beginning of the application data blocks
+ *   section.
+ * @param new_offset Output value to hold new offset after reading all data
+ *   blocks.
+ * @param error Error output.
+ *
+ * @return Application extension block struct holding the data that was read.
+ */
 gif_application_block_t *gif_read_application_block(
   unsigned char *data,
   size_t length,
@@ -223,6 +288,19 @@ gif_application_block_t *gif_read_application_block(
   return block;
 }
 
+/**
+ * Reads Graphics Context extension block from the data stream.
+ *
+ * @param data Input data stream.
+ * @param length Total length of the data stream.
+ * @param start Offset to the beginning of the application data blocks
+ *   section.
+ * @param out_offset Output value to hold new offset after reading all data
+ *   blocks.
+ * @param error Error output.
+ *
+ * @return Graphics Context extension block struct.
+ */
 gif_gc_block_t *gif_read_gc_block(
   unsigned char *data,
   size_t length,
@@ -265,6 +343,20 @@ gif_gc_block_t *gif_read_gc_block(
   return out;
 }
 
+/**
+ * Reads an image block from the data stream.
+ *
+ * @param data Input data stream.
+ * @param length Total length of the data stream.
+ * @param start Offset to the beginning of the application data blocks
+ *   section.
+ * @param gc Graphics Context block that was preceding the image block.
+ * @param out_offset Output value to hold new offset after reading all data
+ *   sub-blocks.
+ * @param error Error output.
+ *
+ * @return Image block struct holding the parsed data.
+ */
 gif_image_block_t *gif_read_image_block(
   unsigned char *data,
   size_t length,
@@ -357,14 +449,7 @@ gif_image_block_t *gif_read_image_block(
 
 /** Public **/
 
-gif_parsed_t *gif_parsed_from_file(const char *filename, int *error) {
-  unsigned char *data = NULL;
-  size_t size = gif_read_file(filename, &data, error);
-
-  if (*error != 0) {
-    return NULL;
-  }
-
+gif_parsed_t *gif_parsed_from_data(unsigned char *data, size_t size, int *error) {
   // Check the header.
   if (data[0] != 'G' || data[1] != 'I' || data[2] != 'F') {
     *error = GIF_ERR_BAD_HEADER;
@@ -477,8 +562,32 @@ gif_parsed_t *gif_parsed_from_file(const char *filename, int *error) {
   }
 
   // Clean up and return.
-  free(data);
   return gif;
+}
+
+gif_parsed_t *gif_parsed_from_file(FILE *file, int *error) {
+  unsigned char *data = NULL;
+
+  size_t size = gif_read_file(file, &data, error);
+  if (*error != 0) {
+    return NULL;
+  }
+
+  gif_parsed_t *parsed = gif_parsed_from_data(data, size, error);
+  free(data);
+  return parsed;
+}
+
+gif_parsed_t *gif_parsed_from_path(const char *filename, int *error) {
+  FILE *file = fopen(filename, "r");
+  if (file == NULL) {
+    *error = GIF_ERR_FILEIO_CANT_OPEN;
+    return 0;
+  }
+
+  gif_parsed_t *parsed = gif_parsed_from_file(file, error);
+  fclose(file);
+  return parsed;
 }
 
 void gif_parsed_free(gif_parsed_t *gif) {
