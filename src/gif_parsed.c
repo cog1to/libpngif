@@ -601,3 +601,4 @@ void gif_parsed_free(gif_parsed_t *gif) {
 
   free(gif);
 }
+

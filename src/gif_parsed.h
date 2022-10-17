@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 
-/** Data types **/
+/** Basic data types **/
 
 typedef struct {
   u_int32_t width;

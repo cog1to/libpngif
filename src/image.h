@@ -3,6 +3,8 @@
 
 #include "gif_decoded.h"
 
+/** Data types **/
+
 typedef struct {
   unsigned char *rgba;
   u_int32_t duration_ms;
@@ -21,16 +23,17 @@ typedef struct {
   image_frame_t *frames;
 } animated_image_t;
 
+/** Interface **/
+
 /**
  * Disclaimer to all methods:
  *
- * @param ignore_background Don't use "background color index" values from the
- *   Logical Screen Description. This flag will make the decoder behave more
- *   like a browser: 1. it doesn't paint the canvas with background color, and
- *   2. when encountering Background Fill disposal in a frame, it clears the
- *   canvas with full black transparent color instead of a background color.
- *   This goes kind of against the specification in GIF87 standard, but it's
- *   how modern browsers treat it.
+ * `ignore_background` flag will make the decoder behave more like a browser:
+ * 1. first frame is not initialized with background color.
+ * 2. when encountering Background Fill disposal in a frame, it clears the
+ * canvas with full black transparent color instead of a background color.
+ * This goes kind of against the specification in GIF87 standard, but it's
+ * how modern browsers treat it.
  */
 
 /**

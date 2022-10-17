@@ -12,8 +12,23 @@
 #define DISPOSE_RESTORE 3
 
 void image_frame_free(image_frame_t *frame);
-void gif_draw_subimage(unsigned char *rgba, gif_decoded_image_t *image, u_int32_t width, u_int32_t height);
-void gif_draw_frame(image_frame_t *frame, unsigned char *canvas, u_int32_t width, u_int32_t height, gif_color_t *background_color, gif_decoded_image_t *image, int ignore_background, int *error);
+
+void gif_draw_subimage(
+  unsigned char *rgba,
+  gif_decoded_image_t *image,
+  u_int32_t width,u_int32_t height
+);
+
+void gif_draw_frame(
+  image_frame_t *frame,
+  unsigned char *canvas,
+  u_int32_t width,
+  u_int32_t height,
+  gif_color_t *background_color,
+  gif_decoded_image_t *image,
+  int ignore_background,
+  int *error
+);
 
 /** Public **/
 
@@ -149,6 +164,11 @@ void animated_image_free(animated_image_t *image) {
 
 /** Private **/
 
+/**
+ * Frees the memory occupied by an image frame.
+ *
+ * @param frame Image frame data to deallocate.
+ */
 void image_frame_free(image_frame_t *frame) {
   if (frame == NULL)
     return;
