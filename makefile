@@ -6,13 +6,23 @@ INCLUDE := -Isrc -Isrc/gif
 ifeq ($(UNAME), Darwin)
 	CFLAGS += -D OS_MAC -framework Cocoa -Isupport/
 	IMAGE_VIEWER_TARGET += support/animator.m support/appdelegate.m support/image_viewer_mac.m
+	LFLAGS += -Wl,-undefined -Wl,dynamic_lookup
 else
 	CFLAGS += -D OS_LINUX
 	IMAGE_VIEWER_TARGET += support/animator.m support/appdelegate.m support/image_viewer_mac.m
+	LFLAGS += -shared -fPIC -wl,-soname,libpngif.so.0
 endif
 
-all: $(SRC_FILES) 
+all: $(SRC_FILES)
+	make dynamic
 	make tests
+
+# Library
+
+dynamic: $(SRC_FILES)
+	gcc -Wall $(LFLAGS) -o bin/libpngif.so.0.1 $(INCLUDE) $(SRC_FILES)
+
+# Tests
 
 test_parsed: $(SRC_FILES) test/test_parsed.c
 	gcc -Wall -o bin/test_parsed $(INCLUDE) $(SRC_FILES) test/test_parsed.c
