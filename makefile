@@ -1,6 +1,7 @@
 SRC_DIR := src
-SRC_FILES := $(wildcard $(SRC_DIR)/*.c)
+SRC_FILES := $(wildcard $(SRC_DIR)/*.c) $(wildcard $(SRC_DIR)/gif/*.c)
 UNAME := $(shell uname)
+INCLUDE := -Isrc -Isrc/gif
 
 ifeq ($(UNAME), Darwin)
 	CFLAGS += -D OS_MAC -framework Cocoa -Isupport/
@@ -14,17 +15,17 @@ all: $(SRC_FILES)
 	make tests
 
 test_parsed: $(SRC_FILES) test/test_parsed.c
-	gcc -Wall -o bin/test_parsed -Isrc/ $(SRC_FILES) test/test_parsed.c
+	gcc -Wall -o bin/test_parsed $(INCLUDE) $(SRC_FILES) test/test_parsed.c
 
 test_codes: $(SRC_FILES) test/test_read_code.c
-	gcc -Wall -o bin/test_codes -Isrc/ $(SRC_FILES) test/test_read_code.c
+	gcc -Wall -o bin/test_codes $(INCLUDE) $(SRC_FILES) test/test_read_code.c
 
 test_decoded: $(SRC_FILES) test/test_decoded.c
-	gcc -Wall -o bin/test_decoded -Isrc/ $(CFLAGS) \
+	gcc -Wall -o bin/test_decoded $(INCLUDE) $(CFLAGS) \
 		$(SRC_FILES) test/test_decoded.c $(IMAGE_VIEWER_TARGET)
 
 test_image_gif: $(SRC_FILES) test/test_image_gif.c
-	gcc -Wall -o bin/test_image_gif -Isrc/ $(CFLAGS) \
+	gcc -Wall -o bin/test_image_gif $(INCLUDE) $(CFLAGS) \
 		$(SRC_FILES) test/test_image_gif.c $(IMAGE_VIEWER_TARGET)
 
 tests: $(SRC_FILES)
