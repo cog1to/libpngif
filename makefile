@@ -27,7 +27,8 @@ $(OBJ): $(OBJ_DIR)/%.o : $(SRC_DIR)/%.c
 
 clean:
 	rm -rf $(OBJ)
-	rm -rf bin/test_parsed bin/test_codes bin/test_decoded bin/test_image_gif bin/*.dSYM
+	rm -rf bin/test_gif_parsed bin/test_gif_codes bin/test_gif_decoded bin/test_gif_image \
+		bin/*.dSYM
 	rm -f bin/libpngif.a bin/libpngif.so.0.1
 
 static: $(OBJ)
@@ -38,23 +39,23 @@ dynamic: $(SRC_FILES)
 
 # Tests
 
-test_parsed: $(SRC_FILES) test/test_parsed.c
-	gcc -Wall -o bin/test_parsed $(CFLAGS) $(SRC_FILES) test/test_parsed.c
+test_gif_parsed: $(SRC_FILES) test/test_gif_parsed.c
+	gcc -Wall -o bin/test_gif_parsed $(CFLAGS) $(SRC_FILES) test/test_gif_parsed.c
 
-test_codes: $(SRC_FILES) test/test_read_code.c
-	gcc -Wall -o bin/test_codes $(CFLAGS) $(SRC_FILES) test/test_read_code.c
+test_gif_codes: $(SRC_FILES) test/test_read_code.c
+	gcc -Wall -o bin/test_gif_codes $(CFLAGS) $(SRC_FILES) test/test_read_code.c
 
-test_decoded: $(SRC_FILES) test/test_decoded.c
-	gcc -Wall -o bin/test_decoded $(CFLAGS) $(ADDCFLAGS) \
-		$(SRC_FILES) test/test_decoded.c $(IMAGE_VIEWER_TARGET)
+test_gif_decoded: $(SRC_FILES) test/test_gif_decoded.c
+	gcc -Wall -o bin/test_gif_decoded $(CFLAGS) $(ADDCFLAGS) \
+		$(SRC_FILES) test/test_gif_decoded.c $(IMAGE_VIEWER_TARGET)
 
-test_image_gif: $(SRC_FILES) test/test_image_gif.c
-	gcc -Wall -o bin/test_image_gif $(CFLAGS) $(ADDCFLAGS) \
-		$(SRC_FILES) test/test_image_gif.c $(IMAGE_VIEWER_TARGET)
+test_gif_image: $(SRC_FILES) test/test_gif_image.c
+	gcc -Wall -o bin/test_gif_image $(CFLAGS) $(ADDCFLAGS) \
+		$(SRC_FILES) test/test_gif_image.c $(IMAGE_VIEWER_TARGET)
 
 tests: $(SRC_FILES)
-	make test_parsed
-	make test_codes
-	make test_decoded
-	make test_image_gif
+	make test_gif_parsed
+	make test_gif_codes
+	make test_gif_decoded
+	make test_gif_image
 
