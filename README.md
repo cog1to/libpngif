@@ -2,8 +2,9 @@
 
 Small C library to decode (A)PNG and GIF images into RGBA byte arrays.
 
-*The code is not optimized and may have bugs. This is more of an learning
-exercise than a production ready library. Use at your own risk.*
+*The code is not optimized and may have bugs. The formats are not fully
+supported. This is more of an learning exercise than a production ready
+library. Use at your own risk.*
 
 I created it because I didn't want to use third-party libraries with a ton of
 extra functionality to simply read image files, and I was interested in how
@@ -12,29 +13,36 @@ various image formats are designed.
 Right now only PNG and GIF are supported, both static and animated. I don't
 currently have any plans to add more image formats.
 
+Not every feature of PNG and GIF is supported either. For PNGs, I don't do
+anything with `gAMA`, `iCCP`, `sPLT`, and a bunch of other ancilliary chunks.
+For GIFs, I ignore plain text chunks. Gamma correction for PNGs might come in
+at some point; everything else - not necessarily.
+
 ## Interface
 
 Decoders for both formats are structured into 3-4 "levels":
 
-*Level 0*: Raw. Breaks the file into the minimal possible logical parts. For
-PNG, it's individual "chunks".
+*Level 0*: Raw. Breaks the file into the minimal useful logical parts.
 
-For GIF, this layer is skipped because it didn't make much sense. In PNG, you
-can split the file into individual chunks with 0 knowledge about content of
-those chunks. In GIF, you have to know the format of some blocks to be able to
-successfully skip them. So, because the block structure knowledge is already
-required at this level, there's no point in simply "splitting" the file.
+For PNG, it's individual "chunks". Each chunk has a length field embedded in it
+so you can always just read the chunk's header, length, and skip the data to
+get to the next chunk.
 
 Look into `png_raw.h` header file for the interface.
 
+In GIF, some blocks don't have the size embedded in them, and you have to know
+the block's format and length to be able to correctly read/skip it. Because the
+block structure knowledge is already kind of required at this level, there's no
+point in simply "splitting" the file into raw byte blocks.
+
 *Level 1*: Parsed. Parses logical blocks from Level 0 from simple byte array
-into a useful and structured data. For example, PLTE (color palette) chunk is
-parsed into a color palette struct.
+into a useful and structured data. For example, PLTE (color palette) chunk in
+a PNG file is parsed into a proper color palette struct.
 
 Look into `gif_parsed.h` and `png_parsed.h` headers.
 
 *Level 2*: Decoded. Decodes parsed image data into more high-level image
-containers. For example, raw image chunk data from GIF file is expanded,
+containers. For example, raw image chunk data from GIF file is decompressed,
 deinteraced, translated from color table indices into actual RGBA values.
 
 Some data might get thrown off at this stage. For example, I'm not interested
@@ -57,10 +65,14 @@ On each level there are functions that take as an input either:
 - FILE pointer
 - file path
 
-So you can produce each level's output without manually going through all
-previous levels.
+The first one allows you to insert your logic into the decoding process. If you
+are interested in some PNG chunk that is ignored at the decoding stage, you can
+get it's raw data at parsing or a lower level.
 
-## Example
+The latter ones allow you to conveniently get each level's output without
+manually going through all of the previous levels.
+
+## Examples
 
 You can look at `test/*.c` files for basic usage. Quick example going through
 all abstraction levels:

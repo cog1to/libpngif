@@ -113,21 +113,19 @@ void gif_lzw_code_table_free(gif_lzw_code_table *table) {
  * @param old Code table to expand.
  * @param new_size New max number of elements.
  * @param new_stride New max length of a color index sequence for a code.
- *
- * @return A pointer to the same code table. NULL in case of an error.
+ * @param error Error output.
  */
-// TODO: Potential memory leak. If caller doesn't know that the result is
-// pointing to the same code table, it could lose the original pointer and
-// leave the memory hanging forever.
-gif_lzw_code_table *gif_lzw_code_table_resize(
+void gif_lzw_code_table_resize(
   gif_lzw_code_table *old,
   size_t new_size,
-  size_t new_stride
+  size_t new_stride,
+  int *error
 ) {
   // Allocate new storage.
   unsigned char *new_elements = calloc(new_size, new_stride);
   if (new_elements == NULL) {
-    return NULL;
+    *error = GIF_ERR_MEMIO;
+    return;
   }
 
   /*
@@ -152,7 +150,6 @@ gif_lzw_code_table *gif_lzw_code_table_resize(
   old->elements = new_elements;
   old->size = new_size;
   old->stride = new_stride;
-  return old;
 }
 
 /**
@@ -220,14 +217,14 @@ size_t gif_lzw_code_table_append_element(
       ? gif_max_size(table->stride * 2, *elsize + 2)
       : table->stride;
 
-    gif_lzw_code_table *new_table = gif_lzw_code_table_resize(
+    gif_lzw_code_table_resize(
       table,
       new_size,
-      new_stride
+      new_stride,
+      error
     );
 
-    if (new_table == NULL) {
-      *error = GIF_ERR_MEMIO;
+    if (*error != 0) {
       return table->element_count;
     }
   }
