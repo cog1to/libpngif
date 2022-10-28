@@ -49,10 +49,12 @@ typedef struct {
   size_t element_count;
   // Number of bytes that each element can occupy.
   size_t stride;
-  // Element storage:
-  // First two bytes of each element is it's length, next LENGTH bytes are
-  // color table indexes. The code table guarantees that there's enough space
-  // allocated for all elements at all times.
+  /*
+   * Element storage:
+   * First two bytes of each element is it's length, next LENGTH bytes are
+   * color table indexes. The code table guarantees that there's enough space
+   * allocated for all elements at all times.
+   */
   unsigned char *elements;
 } gif_lzw_code_table;
 
@@ -128,9 +130,11 @@ gif_lzw_code_table *gif_lzw_code_table_resize(
     return NULL;
   }
 
-  // If element size isn't changed, just copy the old storage to the new one.
-  // Otherwise, we have to copy each element separately because of the stride
-  // difference between two storages.
+  /*
+   * If element size isn't changed, just copy the old storage to the new one.
+   * Otherwise, we have to copy each element separately because of the stride
+   * difference between two storages.
+   */
   if (new_stride == old->stride) {
     memcpy(new_elements, old->elements, old->stride * old->size);
   } else {
@@ -430,10 +434,12 @@ unsigned char *gif_decode_image_data(
       seq_size = (u_int16_t *)sequence;
       memcpy(buffer, sequence, *seq_size + 2);
     } else if (expect_reset && bit_offset == code_size) {
-      // Why this weird condition? Because some GIFs ignore standard's
-      // recommendation to put CLEAR code as a first code in the data stream.
-      // We have to treat it as a normal situation and do initialization as if
-      // the clear code was there.
+      /*
+       * Why this weird condition? Because some GIFs ignore standard's
+       * recommendation to put CLEAR code as a first code in the data stream.
+       * We have to treat it as a normal situation and do initialization as if
+       * the clear code was there.
+       */
       expect_reset = 0;
 
       // Output the code.
@@ -450,7 +456,6 @@ unsigned char *gif_decode_image_data(
       memcpy(buffer, sequence, *seq_size + 2);
     } else {
       // We were expecting code table reset, but got a normal code.
-      // This is an encoding error.
       if (expect_reset) {
         *error = GIF_ERR_NO_RESET;
         break;
@@ -493,9 +498,11 @@ unsigned char *gif_decode_image_data(
 
       // Check if need to increase code size.
       if (table->element_count == max_code_count) {
-        // Do not increase code size beyond 12, it's max value defined in GIF
-        // standard. Instead set the `expect_reset` flag on, becase the next
-        // code MUST be a reset code.
+        /*
+         * Do not increase code size beyond 12, it's max value defined in GIF
+         * standard. Instead set the `expect_reset` flag on, becase the next
+         * code MUST be a reset code.
+         */
         if (max_code_count == 4096) {
           expect_reset = 1;
         } else {
@@ -556,8 +563,10 @@ void gif_decode_image_block(
   size_t color_table_size;
   unsigned char *transparent_color_index = NULL;
 
-  // The color table might be embedded in the image block. Otherwise use global
-  // one.
+  /*
+   * The color table might be embedded in the image block. Otherwise use global
+   * one.
+   */
   if (image->color_table != NULL && image->descriptor.color_table_size > 0) {
     color_table = image->color_table;
     color_table_size = image->descriptor.color_table_size;
@@ -651,8 +660,10 @@ gif_decoded_t *gif_decoded_from_parsed(gif_parsed_t *parsed, int *error) {
   for (int idx = 0; idx < parsed->block_count; idx++) {
     gif_block_t *block = parsed->blocks[idx];
 
-    // Application extension block. The only one we support now is the Netscape
-    // extension that specifies the animation repeat count.
+    /*
+     * Application extension block. The only one we support now is the Netscape
+     * extension that specifies the animation repeat count.
+     */
     if (block->type == GIF_BLOCK_APPLICATION) {
       gif_application_block_t *app = (gif_application_block_t *)block;
       if (strcmp(app->identifier, "NETSCAPE") == 0 && strcmp(app->auth_code, "2.0") == 0) {

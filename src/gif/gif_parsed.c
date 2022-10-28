@@ -141,8 +141,10 @@ size_t concat_data_blocks(
     tmp += (block_length + 1);
   }
 
-  // Offset to the next section would be last the data point + 1 for the
-  // terminator byte '00'.
+  /*
+   * Offset to the next section would be last the data point + 1 for the
+   * terminator byte '00'.
+   */
   *new_offset = tmp + 1;
   *output = out;
 
@@ -321,11 +323,13 @@ gif_gc_block_t *gif_read_gc_block(
     return NULL;
   }
 
-  // Packed settings byte: 000|ddd|u|t
-  // 000 - reserverd for future use
-  // ddd - disposal method
-  // u - user input flag
-  // t - trasparency flag
+  /*
+   * Packed settings byte: 000|ddd|u|t
+   * 000 - reserverd for future use
+   * ddd - disposal method
+   * u - user input flag
+   * t - trasparency flag
+   */
   unsigned char settings_byte = data[start + 1];
   out->dispose_method = (settings_byte & 0x1C) >> 2;
   out->input_flag = (settings_byte & 0x2) >> 1;
@@ -473,14 +477,16 @@ gif_parsed_t *gif_parsed_from_data(unsigned char *data, size_t size, int *error)
   gif->screen.width = width;
   gif->screen.height = height;
 
-  // Color table info, packed into a byte: f|rrr|s|ccc
-  // f - global color table flag
-  // rrr - color resolution
-  // s - sort flag
-  // ccc - color table resolution
-  //
-  // "Resolution" specifies the number of bits required to store all colors.
-  // The color table size equals 2^(resolution+1).
+  /*
+   * Color table info, packed into a byte: f|rrr|s|ccc
+   * f - global color table flag
+   * rrr - color resolution
+   * s - sort flag
+   * ccc - color table resolution
+   *
+   * "Resolution" specifies the number of bits required to store all colors.
+   * The color table size equals 2^(resolution+1).
+   */
   unsigned char color_table_info = data[10];
   if (color_table_info & 128) {
     unsigned char color_table_res = (color_table_info & 0x70) >> 4;
@@ -523,19 +529,62 @@ gif_parsed_t *gif_parsed_from_data(unsigned char *data, size_t size, int *error)
   size_t block_count = 0;
   gif_block_t **blocks = NULL;
 
+  /*
+   * Each data block starts with a type byte, optinally followed by an
+   * extension type byte. We check those and branch the parser accordingly.
+   */
   while (offset < size && data[offset] != TRAILER && *error == 0) {
     if (data[offset] == INTRO_EXT && data[offset + 1] == EXT_PLAIN_TEXT) {
-      block = (gif_block_t *)gif_read_text_block(GIF_BLOCK_PLAIN_TEXT, data, size, offset + 2, &offset, error);
+      block = (gif_block_t *)gif_read_text_block(
+        GIF_BLOCK_PLAIN_TEXT,
+        data,
+        size,
+        offset + 2,
+        &offset,
+        error
+      );
     } else if (data[offset] == INTRO_EXT && data[offset + 1] == EXT_APPLICATION) {
-      block = (gif_block_t *)gif_read_application_block(data, size, offset + 2, &offset, error);
+      block = (gif_block_t *)gif_read_application_block(
+        data,
+        size,
+        offset + 2,
+        &offset,
+        error
+      );
     } else if (data[offset] == INTRO_EXT && data[offset + 1] == EXT_COMMENT) {
-      block = (gif_block_t *)gif_read_text_block(GIF_BLOCK_COMMENT, data, size, offset + 2, &offset, error);
+      block = (gif_block_t *)gif_read_text_block(
+        GIF_BLOCK_COMMENT,
+        data,
+        size,
+        offset + 2,
+        &offset,
+        error
+      );
     } else if (data[offset] == INTRO_EXT && data[offset + 1] == EXT_GRAPHIC_CONTROL) {
-      gc = gif_read_gc_block(data, size, offset + 2, &offset, error);
+      /*
+       * Graphical Control Extension block is always preceding the image block.
+       * We don't save it to the block list, instead we parse it and add it to the
+       * image block that's coming next.
+       */
+      gc = gif_read_gc_block(
+        data,
+        size,
+        offset + 2,
+        &offset,
+        error
+      );
     } else if (data[offset] == INTRO_IMAGE_DESC) {
-      block = (gif_block_t *)gif_read_image_block(data, size, offset + 1, gc, &offset, error);
+      block = (gif_block_t *)gif_read_image_block(
+        data,
+        size,
+        offset + 1,
+        gc,
+        &offset,
+        error
+      );
       gc = NULL;
     } else if (data[offset] == INTRO_EXT) {
+      // Unknown extension block type. Skip through each sub-block.
       offset += 2;
       unsigned char block_size = 0;
       while ((block_size = data[offset]) > 0) {
