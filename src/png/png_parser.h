@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "errors.h"
+#include "png_raw.h"
 
 /** Data types **/
 

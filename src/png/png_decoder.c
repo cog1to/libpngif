@@ -3,10 +3,10 @@
 #include <string.h>
 #include <arpa/inet.h>
 
-#include "util.h"
-#include "raw.h"
-#include "parser.h"
-#include "decoder.h"
+#include "png_util.h"
+#include "png_raw.h"
+#include "png_parser.h"
+#include "png_decoder.h"
 #include "math.h"
 
 /** Private **/

@@ -1,9 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "util.h"
-#include "raw.h"
-#include "parser.h"
+#include "png_util.h"
+#include "png_raw.h"
+#include "png_parser.h"
 
 int main(int argc, char **argv) {
   if (argc < 2) {

@@ -3,8 +3,8 @@
 #include <string.h>
 #include <inttypes.h>
 
-#include "raw.h"
-#include "util.h"
+#include "png_raw.h"
+#include "png_util.h"
 
 /** Constants **/
 

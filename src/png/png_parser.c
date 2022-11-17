@@ -5,9 +5,9 @@
 #include <arpa/inet.h>
 #include <zlib.h>
 
-#include "util.h"
-#include "raw.h"
-#include "parser.h"
+#include "png_util.h"
+#include "png_raw.h"
+#include "png_parser.h"
 
 /** Private **/
 

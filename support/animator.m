@@ -84,6 +84,64 @@
   return self;
 }
 
+-(id)initWithDecodedPng:(png_t *)png {
+  if (self = [super init]) {
+    if (png == NULL) {
+      return self;
+    }
+
+    NSMutableArray *output = [[[NSMutableArray alloc] init] autorelease];
+
+    if (png->frames == NULL || png->frames->length == 0) {
+      // Non-animated.
+      NSBitmapImageRep *newRep = [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:&png->data
+        pixelsWide:png->width
+        pixelsHigh:png->height
+        bitsPerSample:8
+        samplesPerPixel:4
+        hasAlpha:YES
+        isPlanar:NO
+        colorSpaceName:NSDeviceRGBColorSpace
+        bytesPerRow:4 * png->width
+        bitsPerPixel:32];
+
+      NSImage* image = [[NSImage alloc] initWithSize:NSMakeSize(png->width, png->height)];
+      [image addRepresentation: newRep];
+
+      ImageHolder *holder = [[ImageHolder alloc] initWithImage:image delay:0];
+
+      [output addObject: holder];
+    } else {
+      for (int idx = 0; idx < png->frames->length; idx++) {
+        png_frame_t frame = png->frames->frames[idx];
+
+        NSBitmapImageRep *newRep = [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:&frame.data
+          pixelsWide:frame.width
+          pixelsHigh:frame.height
+          bitsPerSample:8
+          samplesPerPixel:4
+          hasAlpha:YES
+          isPlanar:NO
+          colorSpaceName:NSDeviceRGBColorSpace
+          bytesPerRow:4 * frame.width
+          bitsPerPixel:32];
+
+        NSImage* image = [[NSImage alloc] initWithSize:NSMakeSize(frame.width,  frame.height)];
+        [image addRepresentation: newRep];
+
+        ImageHolder *holder = [[ImageHolder alloc] initWithImage:image delay:(frame.delay * 100)];
+
+        [output addObject: holder];
+      }
+    }
+
+    images = output;
+    frame_index = 0;
+    running = NO;
+  }
+  return self;
+}
+
 -(id)initWithImage:(animated_image_t *)image {
   if (self = [super init]) {
     if (image == NULL) {
@@ -124,7 +182,6 @@
   }
   return self;
 }
-
 
 -(void)setImageView:(NSImageView *)iv {
   imageView = iv;

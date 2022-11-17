@@ -2,6 +2,7 @@
 #define _PNG_DECODER_INCLUDE
 
 #include "errors.h"
+#include "png_parser.h"
 
 /** Data types **/
 
