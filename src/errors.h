@@ -1,6 +1,13 @@
 #ifndef PNGIF_ERRORS_HEADER
 #define PNGIF_ERRORS_HEADER
 
+/** Common errors **/
+
+// Cannot open and read file.
+static const int PNGIF_ERR_FILEIO = 49;
+// Memory allocation error.
+static const int PNGIF_ERR_UNKNOWN_FORMAT = 50;
+
 /** GIF errors **/
 
 // Cannot open and read file.

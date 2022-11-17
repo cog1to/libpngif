@@ -33,7 +33,13 @@ int main(int argc, char **argv) {
     }
   }
 
-  animated_image_t *image = image_from_gif_path(argv[argc - 1], ignore_background, &error);
+  gif_decoded_t *gif = gif_decoded_from_path(argv[argc - 1], &error);
+  if (error != 0) {
+    printf("Failed to parse GIF: %d\n", error);
+    return -1;
+  }
+
+  animated_image_t *image = image_from_decoded_gif(gif, ignore_background, &error);
 
   if (error != 0 || image == NULL) {
     printf("Image error: %d\n", error);
@@ -43,5 +49,6 @@ int main(int argc, char **argv) {
   show_image(image);
 
   animated_image_free(image);
+  gif_decoded_free(gif);
   return 0;
 }

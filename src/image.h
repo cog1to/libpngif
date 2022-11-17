@@ -47,49 +47,11 @@ typedef struct {
  *
  * @return Animated image data or NULL in case of any errors.
  */
-animated_image_t *image_from_decoded_gif(gif_decoded_t *gif, int ignore_background, int *error);
-
-/**
- * Creates animated image from raw GIF data.
- *
- * @param data GIF data array.
- * @param size Data size.
- * @param ignore_background Don't use "background color index" values from the
- *   Logical Screen Descriptor.
- * @param error Return error value.
- *
- * @return Animated image data or NULL in case of any errors.
- */
-animated_image_t *image_from_gif_data(
-  unsigned char *data,
-  size_t size,
+animated_image_t *image_from_decoded_gif(
+  gif_decoded_t *gif,
   int ignore_background,
   int *error
 );
-
-/**
- * Creates animated image from data read from given file handle.
- *
- * @param file File handle to GIF file.
- * @param ignore_background Don't use "background color index" values from the
- *   Logical Screen Descriptor.
- * @param error Return error value.
- *
- * @return Animated image data or NULL in case of any errors.
- */
-animated_image_t *image_from_gif_file(FILE *file, int ignore_background, int *error);
-
-/**
- * Creates animated image from file at given path.
- *
- * @param path Path to GIF file.
- * @param ignore_background Don't use "background color index" values from the
- *   Logical Screen Descriptor.
- * @param error Return error value.
- *
- * @return Animated image data or NULL in case of any errors.
- */
-animated_image_t *image_from_gif_path(char *path, int ignore_background, int *error);
 
 /**
  * Creates animated image from decoded PNG data.
@@ -100,6 +62,48 @@ animated_image_t *image_from_gif_path(char *path, int ignore_background, int *er
  * @return Animated image data or NULL in case of any errors.
  */
 animated_image_t *image_from_decoded_png(png_t *png, int *error);
+
+/**
+ * Creates animated image from raw GIF or PNG data.
+ *
+ * @param data GIF/PNG data array.
+ * @param size Data size.
+ * @param ignore_background Don't use "background color index" values from the
+ *   Logical Screen Descriptor in GIF.
+ * @param error Return error value.
+ *
+ * @return Animated image data or NULL in case of any errors.
+ */
+animated_image_t *image_from_data(
+  unsigned char *data,
+  size_t size,
+  int ignore_background,
+  int *error
+);
+
+/**
+ * Creates animated image from data read from given file handle.
+ *
+ * @param file File handle to GIF or PNG file.
+ * @param ignore_background Don't use "background color index" values from the
+ *   Logical Screen Descriptor in GIF file.
+ * @param error Return error value.
+ *
+ * @return Animated image data or NULL in case of any errors.
+ */
+animated_image_t *image_from_file(FILE *file, int ignore_background, int *error);
+
+/**
+ * Creates animated image from file at given path.
+ *
+ * @param path Path to GIF or PNG file.
+ * @param ignore_background Don't use "background color index" values from the
+ *   Logical Screen Descriptor in GIF file.
+ * @param error Return error value.
+ *
+ * @return Animated image data or NULL in case of any errors.
+ */
+animated_image_t *image_from_path(char *path, int ignore_background, int *error);
 
 /**
  * Frees the memory allocated for animated image data.

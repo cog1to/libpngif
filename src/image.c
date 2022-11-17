@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "utils.h"
 #include "errors.h"
 #include "image.h"
 
@@ -200,41 +201,62 @@ animated_image_t *image_from_decoded_png(png_t *png, int *error) {
 
 /** Convenience API **/
 
-animated_image_t *image_from_gif_data(
+animated_image_t *image_from_data(
   unsigned char *data,
   size_t size,
   int ignore_background,
   int *error
 ) {
-  gif_decoded_t *decoded = gif_decoded_from_data(data, size, error);
-  if (*error != 0 || decoded == NULL) {
+  char header[4] = { 0 };
+  memcpy(header, data, 3);
+
+  if (strcmp(header, "GIF") == 0) {
+    gif_decoded_t *decoded = gif_decoded_from_data(data, size, error);
+    if (*error != 0 || decoded == NULL) {
+      return NULL;
+    }
+
+    animated_image_t *image = image_from_decoded_gif(decoded, ignore_background, error);
+    free(decoded);
+    return image;
+  } else if (strcmp(header, "PNG") == 0) {
+    png_t *decoded = png_decoded_from_data(data, size, error);
+    if (*error != 0 || decoded == NULL) {
+      return NULL;
+    }
+
+    animated_image_t *image = image_from_decoded_png(decoded, error);
+    free(decoded);
+    return image;
+  } else {
+    *error = PNGIF_ERR_UNKNOWN_FORMAT;
+    return NULL;
+  }
+}
+
+animated_image_t *image_from_file(FILE *file, int ignore_background, int *error) {
+  unsigned char *data = NULL;
+  size_t size = pngif_read_file(file, &data, error);
+
+  if (data == NULL || size == 0) {
+    *error = PNGIF_ERR_FILEIO;
     return NULL;
   }
 
-  animated_image_t *image = image_from_decoded_gif(decoded, ignore_background, error);
-  free(decoded);
+  animated_image_t *image = image_from_data(data, size, ignore_background, error);
+  free(data);
   return image;
 }
 
-animated_image_t *image_from_gif_file(FILE *file, int ignore_background, int *error) {
-  gif_decoded_t *decoded = gif_decoded_from_file(file, error);
-  if (*error != 0 || decoded == NULL) {
-    return NULL;
+animated_image_t *image_from_path(char *path, int ignore_background, int *error) {
+  FILE *file = fopen(path, "r");
+  if (file == NULL) {
+    *error = PNGIF_ERR_FILEIO;
+    return 0;
   }
 
-  animated_image_t *image = image_from_decoded_gif(decoded, ignore_background, error);
-  free(decoded);
-  return image;
-}
-
-animated_image_t *image_from_gif_path(char *path, int ignore_background, int *error) {
-  gif_decoded_t *decoded = gif_decoded_from_path(path, error);
-  if (*error != 0 || decoded == NULL) {
-    return NULL;
-  }
-
-  animated_image_t *image = image_from_decoded_gif(decoded, ignore_background, error);
-  free(decoded);
+  animated_image_t *image = image_from_file(file, ignore_background, error);
+  fclose(file);
   return image;
 }
 
