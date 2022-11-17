@@ -321,7 +321,7 @@ int parse_anim(png_raw_t *raw, png_parsed_t *png) {
 
   // Now we have frame count, we can allocate space for frame data.
   png_frame_control_t *controls = malloc(sizeof(png_frame_control_t) * anim->num_frames);
-  png_data_t *frames = malloc(sizeof(png_data_t) * anim->num_frames);
+  png_data_t *frames = calloc(anim->num_frames, sizeof(png_data_t));
 
   // Skip to first 'fcTL' chunk.
   while (cmphdr("fcTL", raw->chunks[idx]->type) != 0) {
@@ -351,7 +351,7 @@ int parse_anim(png_raw_t *raw, png_parsed_t *png) {
       idx -= 1;
       frame_index += 1;
       control = 1;
-    } else if (cmphdr("IEND", chunk->type) != 0) {
+    } else if ((cmphdr("IEND", chunk->type) != 0) && (cmphdr("tEXt", chunk->type) != 0)) {
       // Error. Wrong chunk type.
       err = PNG_ERR_INVALID_FORMAT;
       break;

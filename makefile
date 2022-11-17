@@ -3,7 +3,7 @@ OBJ_DIR := obj
 SRC_FILES := $(wildcard $(SRC_DIR)/*.c) $(wildcard $(SRC_DIR)/gif/*.c) $(wildcard $(SRC_DIR)/png/*.c)
 OBJ := $(SRC_FILES:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 UNAME := $(shell uname)
-CFLAGS := -Isrc -Isrc/gif -Isrc/png
+CFLAGS := -Isrc -Isrc/gif -Isrc/png --debug
 LDFLAGS := -lz
 
 ifeq ($(UNAME), Darwin)

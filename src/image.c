@@ -382,21 +382,22 @@ void png_draw_subimage(
             4
           );
       } else {
-        if (colors[4] == 255) {
+        if (colors[3] == 0) {
+          continue;
+        } else if (colors[3] == 255) {
           memcpy(
             rgba + (width * (y_offset + line) * 4) + (x_offset + pixel) * 4,
             colors,
             4
           );
-        } else if (colors[4] != 0) {
+        } else {
           // TODO: Seems like a good place for some SIMD commands.
-          float source_alpha = (float)colors[4] / (float)255;
+          float source_alpha = (float)(colors[3]) / (float)255;
           float comp_alpha = 1.0 - source_alpha;
-          for (u_int32_t idx = 0, offset = (width * (y_offset + line) * 4) + (x_offset + pixel) * 4;
-            idx < 3;
-            idx++, offset++
-          ) {
-            rgba[offset] = colors[idx] * source_alpha + rgba[offset] * comp_alpha;
+          u_int32_t offset = (width * (y_offset + line) * 4) + (x_offset + pixel) * 4;
+          for (u_int32_t idx = 0; idx < 3; idx++, offset++) {
+            *(rgba + offset) = ((float)colors[idx] * source_alpha)
+              + ((float)rgba[offset] * comp_alpha);
           }
         }
       }
