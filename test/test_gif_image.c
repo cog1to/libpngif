@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  animated_image_t *image = image_from_path(argv[argc - 1], ignore_background, &error);
+  animated_image_t *image = image_from_gif_path(argv[argc - 1], ignore_background, &error);
 
   if (error != 0 || image == NULL) {
     printf("Image error: %d\n", error);

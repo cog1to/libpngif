@@ -60,7 +60,7 @@ animated_image_t *image_from_decoded_gif(gif_decoded_t *gif, int ignore_backgrou
  *
  * @return Animated image data or NULL in case of any errors.
  */
-animated_image_t *image_from_data(
+animated_image_t *image_from_gif_data(
   unsigned char *data,
   size_t size,
   int ignore_background,
@@ -77,7 +77,7 @@ animated_image_t *image_from_data(
  *
  * @return Animated image data or NULL in case of any errors.
  */
-animated_image_t *image_from_file(FILE *file, int ignore_background, int *error);
+animated_image_t *image_from_gif_file(FILE *file, int ignore_background, int *error);
 
 /**
  * Creates animated image from file at given path.
@@ -89,7 +89,17 @@ animated_image_t *image_from_file(FILE *file, int ignore_background, int *error)
  *
  * @return Animated image data or NULL in case of any errors.
  */
-animated_image_t *image_from_path(char *path, int ignore_background, int *error);
+animated_image_t *image_from_gif_path(char *path, int ignore_background, int *error);
+
+/**
+ * Creates animated image from decoded PNG data.
+ *
+ * @param gif Decoded PNG data.
+ * @param error Return error value.
+ *
+ * @return Animated image data or NULL in case of any errors.
+ */
+animated_image_t *image_from_decoded_png(png_t *png, int *error);
 
 /**
  * Frees the memory allocated for animated image data.
