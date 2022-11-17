@@ -98,11 +98,11 @@ to verify that decoder is working correctly. You can build them with
 
 ## Useful Links
 
-[PNG documentation](https://www.w3.org/TR/png/#2-RFC-1951)
-[APNG specification](https://wiki.mozilla.org/APNG_Specification)
-[Zlib documentation](https://zlib.net/zlib_how.html)
-[GIF 89a RFC](https://www.w3.org/Graphics/GIF/spec-gif89a.txt)
-['What's In A GIF' articles from GIFLIB](https://giflib.sourceforge.net/whatsinagif/index.html)
+- [PNG documentation](https://www.w3.org/TR/png/#2-RFC-1951)
+- [APNG specification](https://wiki.mozilla.org/APNG_Specification)
+- [Zlib documentation](https://zlib.net/zlib_how.html)
+- [GIF 89a RFC](https://www.w3.org/Graphics/GIF/spec-gif89a.txt)
+- ['What's In A GIF' articles from GIFLIB](https://giflib.sourceforge.net/whatsinagif/index.html)
 
 ## License
 
