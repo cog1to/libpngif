@@ -754,7 +754,7 @@ void png_free(png_t *png) {
   free(png);
 }
 
-png_t *png_create_from_parsed(png_parsed_t *parsed, int convert_to_argb, int *error) {
+png_t *png_decoded_from_parsed(png_parsed_t *parsed, int *error) {
   if (parsed == NULL || parsed->data.length == 0 || parsed->data.data == NULL) {
     return NULL;
   }
@@ -819,4 +819,37 @@ png_t *png_create_from_parsed(png_parsed_t *parsed, int convert_to_argb, int *er
   }
 
   return result;
+}
+
+png_t *png_decoded_from_data(unsigned char *data, size_t size, int *error) {
+  png_parsed_t *parsed = png_parsed_from_data(data, size, error);
+  if (*error != 0) {
+    return NULL;
+  }
+
+  png_t *decoded = png_decoded_from_parsed(parsed, error);
+  png_parsed_free(parsed);
+  return decoded;
+}
+
+png_t *png_decoded_from_file(FILE *file, int *error) {
+  png_parsed_t *parsed = png_parsed_from_file(file, error);
+  if (*error != 0) {
+    return NULL;
+  }
+
+  png_t *decoded = png_decoded_from_parsed(parsed, error);
+  png_parsed_free(parsed);
+  return decoded;
+}
+
+png_t *png_decoded_from_path(char *path, int *error) {
+  png_parsed_t *parsed = png_parsed_from_path(path, error);
+  if (*error != 0) {
+    return NULL;
+  }
+
+  png_t *decoded = png_decoded_from_parsed(parsed, error);
+  png_parsed_free(parsed);
+  return decoded;
 }

@@ -48,12 +48,41 @@ void png_free(png_t *png);
  * Creates a PNG image from a parsed PNG data.
  *
  * @param parsed Parsed PNG data.
- * @param convert_to_argb Flag indicating whether data should be converted from
- *   RGBA to ARGB format.
  * @param error Error output.
  *
  * @return Decoded PNG image, or NULL in case an error occurred.
  */
-png_t *png_create_from_parsed(png_parsed_t *parsed, int convert_to_argb, int *error);
+png_t *png_decoded_from_parsed(png_parsed_t *parsed, int *error);
+
+/**
+ * Creates a parsed PNG struct out of raw PNG data.
+ *
+ * @param data PNG data array.
+ * @param size Size of the data array.
+ * @param error Error output.
+ *
+ * @return Decoded PNG data struct or NULL in case of an error.
+ */
+png_t *png_decoded_from_data(unsigned char *data, size_t size, int *error);
+
+/**
+ * Creates a parsed PNG struct out of data from file handle.
+ *
+ * @param file File handle.
+ * @param error Error output.
+ *
+ * @return Decoded PNG data struct or NULL in case of an error.
+ */
+png_t *png_decoded_from_file(FILE *file, int *error);
+
+/**
+ * Creates a decoded PNG struct out of data from file at given path.
+ *
+ * @param path File path to the PNG file.
+ * @param error Error output.
+ *
+ * @return Decoded PNG data struct or NULL in case of an error.
+ */
+png_t *png_decoded_from_path(char *path, int *error);
 
 #endif

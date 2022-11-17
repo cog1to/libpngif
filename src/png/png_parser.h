@@ -110,7 +110,38 @@ void png_parsed_free(png_parsed_t *png);
  *
  * @return New instance of PNG or NULL in case of an error.
  */
-png_parsed_t *png_create_from_raw(png_raw_t *raw, int *error);
+png_parsed_t *png_parsed_from_raw(png_raw_t *raw, int *error);
+
+/**
+ * Creates a parsed PNG struct out of raw PNG data.
+ *
+ * @param data PNG data array.
+ * @param size Size of the data array.
+ * @param error Error output.
+ *
+ * @return Parsed PNG data struct or NULL in case of an error.
+ */
+png_parsed_t *png_parsed_from_data(unsigned char *data, size_t size, int *error);
+
+/**
+ * Creates a parsed PNG struct out of data from file handle.
+ *
+ * @param file File handle.
+ * @param error Error output.
+ *
+ * @return Parsed PNG data struct or NULL in case of an error.
+ */
+png_parsed_t *png_parsed_from_file(FILE *file, int *error);
+
+/**
+ * Creates a parsed PNG struct out of data from file at given path.
+ *
+ * @param path File path to the PNG file.
+ * @param error Error output.
+ *
+ * @return Parsed PNG data struct or NULL in case of an error.
+ */
+png_parsed_t *png_parsed_from_path(char *path, int *error);
 
 #endif
 

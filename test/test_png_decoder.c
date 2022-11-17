@@ -9,34 +9,22 @@
 #include "image_viewer.h"
 
 int main(int argc, char **argv) {
+  int error = 0;
+
   if (argc < 2) {
     printf("Usage: %s <filename.png>\n", argv[0]);
     return 0;
   }
 
-  int error = 0;
-  png_raw_t *raw = png_raw_from_path(argv[1], 0, &error);
-  if (raw == NULL || error != 0) {
-    printf("Failed to parse file: %d.\n", error);
-    return 0;
-  }
-
-  png_parsed_t *parsed = png_create_from_raw(raw, &error);
-  if (parsed == NULL || error != 0) {
-    printf("Failed to decode PNG chunks: %d.\n", error);
-    return 0;
-  }
-
-  png_t *png = png_create_from_parsed(parsed, 0, &error);
-  if (parsed == NULL || error != 0) {
+  png_t *png = png_decoded_from_path(argv[1], &error);
+  if (png == NULL || error != 0) {
     printf("Failed to decode PNG data: %d.\n", error);
-    return 0;
+    return 1;
   }
 
   show_decoded_png(png);
 
-  png_raw_free(raw);
-  png_parsed_free(parsed);
   png_free(png);
+  return 0;
 }
 

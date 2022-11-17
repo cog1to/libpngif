@@ -411,7 +411,7 @@ void png_parsed_free(png_parsed_t *png) {
   free(png);
 }
 
-png_parsed_t *png_create_from_raw(png_raw_t *raw, int *error) {
+png_parsed_t *png_parsed_from_raw(png_raw_t *raw, int *error) {
   if (raw == NULL) {
     return NULL;
   }
@@ -455,4 +455,37 @@ png_parsed_t *png_create_from_raw(png_raw_t *raw, int *error) {
 
   *error = err;
   return png;
+}
+
+png_parsed_t *png_parsed_from_data(unsigned char *data, size_t size, int *error) {
+  png_raw_t *raw = png_raw_from_data(data, size, 1, error);
+  if (*error != 0) {
+    return NULL;
+  }
+
+  png_parsed_t *parsed = png_parsed_from_raw(raw, error);
+  png_raw_free(raw);
+  return parsed;
+}
+
+png_parsed_t *png_parsed_from_file(FILE *file, int *error) {
+  png_raw_t *raw = png_raw_from_file(file, 1, error);
+  if (*error != 0) {
+    return NULL;
+  }
+
+  png_parsed_t *parsed = png_parsed_from_raw(raw, error);
+  png_raw_free(raw);
+  return parsed;
+}
+
+png_parsed_t *png_parsed_from_path(char *path, int *error) {
+  png_raw_t *raw = png_raw_from_path(path, 1, error);
+  if (*error != 0) {
+    return NULL;
+  }
+
+  png_parsed_t * parsed = png_parsed_from_raw(raw, error);
+  png_raw_free(raw);
+  return parsed;
 }
