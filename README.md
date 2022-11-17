@@ -78,13 +78,42 @@ You can look at `test/*.c` files for basic usage. Quick example going through
 all abstraction levels:
 
 ```c
-TODO
+#include "png_raw.h"
+#include "png_parsed.h"
+#include "png_decoded.h"
+#include "image.h"
+
+int error = 0;
+
+// Error checks after each call are assumed.
+png_raw_t *raw = png_raw_from_path("sample.png", &error);
+png_parsed_t *parsed = png_parsed_from_raw(raw, &error);
+png_t *decoded = png_decoded_from_parsed(parsed, &error);
+animated_image_t *image = image_from_decoded_png(decoded, &error);
+
+// Do stuff with your image.
+// ...
+
+// Cleanup.
+png_raw_free(raw);
+png_parsed_free(parsed);
+png_free(decoded);
+animated_image_free(image);
+```
+
+Image interface can detect image format from the file's header, so on the
+highest level you can just use this:
+
+```c
+animated_image_t *image = image_from_path("sample.png", 1, &error);
+// Do stuff with your image.
+animated_image_free(image);
 ```
 
 ## Requirements
 
-C compiler (GCC or Clang), C standard library. Some tests have graphical
-interface that requires X11 on Linux or Cocoa on MacOS.
+C compiler (GCC or Clang), C standard library. Zlib for PNG decoding. Some
+tests have graphical interface that requires X11 on Linux or Cocoa on MacOS.
 
 ## Building & Installing
 
