@@ -9,9 +9,7 @@
 #include <string.h>
 
 #include <errors.h>
-#include <png_raw.h>
-#include <png_parser.h>
-#include <png_decoder.h>
+#include <png_decoded.h>
 #include <image.h>
 
 #include "image_viewer.h"

@@ -1,3 +1,8 @@
+/**
+ * Takes a PNG file, splits it into raw PNG chunks, and dumps each chunk's
+ * length, type and CRC values into STDOUT.
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 

@@ -1,11 +1,17 @@
+/**
+ * Takes a PNG file, decodes it into png_t, and displays
+ * each frame. Requires a window system to work, since it creates a
+ * window to show the final result.
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "png_util.h"
 #include "png_raw.h"
-#include "png_parser.h"
-#include "png_decoder.h"
+#include "png_parsed.h"
+#include "png_decoded.h"
 #include "image_viewer.h"
 
 int main(int argc, char **argv) {

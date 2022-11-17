@@ -2,7 +2,7 @@
 #define IMAGE_FRAME_HEADER
 
 #include "gif_decoded.h"
-#include "png_decoder.h"
+#include "png_decoded.h"
 
 /** Data types **/
 

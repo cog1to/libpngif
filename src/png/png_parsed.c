@@ -7,7 +7,7 @@
 
 #include "png_util.h"
 #include "png_raw.h"
-#include "png_parser.h"
+#include "png_parsed.h"
 
 /** Private **/
 

@@ -3,7 +3,7 @@ OBJ_DIR := obj
 SRC_FILES := $(wildcard $(SRC_DIR)/*.c) $(wildcard $(SRC_DIR)/gif/*.c) $(wildcard $(SRC_DIR)/png/*.c)
 OBJ := $(SRC_FILES:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 UNAME := $(shell uname)
-CFLAGS := -Isrc -Isrc/gif -Isrc/png --debug
+CFLAGS := -Isrc -Isrc/gif -Isrc/png
 LDFLAGS := -lz
 
 ifeq ($(UNAME), Darwin)
@@ -24,11 +24,13 @@ all: $(SRC_FILES)
 # Generic rule for .o files.
 $(OBJ): $(OBJ_DIR)/%.o : $(SRC_DIR)/%.c
 	@mkdir -p obj/gif
+	@mkdir -p obj/png
 	gcc $(CFLAGS) -c $< -o $@
 
 clean:
 	rm -rf $(OBJ)
 	rm -rf bin/test_gif_parsed bin/test_gif_codes bin/test_gif_decoded bin/test_gif_image \
+		bin/test_png_parsed bin/test_png_decoded bin/test_png_image bin/test_png_chunks \
 		bin/*.dSYM
 	rm -f bin/libpngif.a bin/libpngif.so.0.1
 
@@ -59,12 +61,12 @@ test_gif_image: $(SRC_FILES) test/test_gif_image.c
 test_png_chunks: $(SRC_FILES) test/test_png_chunks.c
 	gcc -Wall -o bin/test_png_chunks $(LDFLAGS) $(CFLAGS) $(SRC_FILES) test/test_png_chunks.c
 
-test_png_parsed: $(SRC_FILES) test/test_png_parse.c
-	gcc -Wall -o bin/test_png_parsed $(LDFLAGS) $(CFLAGS) $(SRC_FILES) test/test_png_parse.c
+test_png_parsed: $(SRC_FILES) test/test_png_parsed.c
+	gcc -Wall -o bin/test_png_parsed $(LDFLAGS) $(CFLAGS) $(SRC_FILES) test/test_png_parsed.c
 
-test_png_decoded: $(SRC_FILES) test/test_png_decoder.c
-	gcc -Wall -o bin/test_png_decoder $(LDFLAGS) $(CFLAGS) $(ADDCFLAGS) \
-		$(SRC_FILES) test/test_png_decoder.c $(IMAGE_VIEWER_TARGET)
+test_png_decoded: $(SRC_FILES) test/test_png_decoded.c
+	gcc -Wall -o bin/test_png_decoded $(LDFLAGS) $(CFLAGS) $(ADDCFLAGS) \
+		$(SRC_FILES) test/test_png_decoded.c $(IMAGE_VIEWER_TARGET)
 
 test_png_image: $(SRC_FILES) test/test_png_image.c
 	gcc -Wall -o bin/test_png_image $(LDFLAGS) $(CFLAGS) $(ADDCFLAGS) \

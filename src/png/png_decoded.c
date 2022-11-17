@@ -2,12 +2,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <math.h>
 
 #include "png_util.h"
 #include "png_raw.h"
-#include "png_parser.h"
-#include "png_decoder.h"
-#include "math.h"
+#include "png_parsed.h"
+#include "png_decoded.h"
 
 /** Private **/
 

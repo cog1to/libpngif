@@ -1,9 +1,14 @@
+/**
+ * Takes a PNG file and parses it into a png_t struct, and dumps the resulting
+ * data into STDOUT.
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 
 #include "png_util.h"
 #include "png_raw.h"
-#include "png_parser.h"
+#include "png_parsed.h"
 
 int main(int argc, char **argv) {
   if (argc < 2) {
