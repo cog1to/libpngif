@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "utils.h"
 #include "errors.h"
 #include "gif_parsed.h"
 
@@ -149,45 +150,6 @@ size_t concat_data_blocks(
   *output = out;
 
   return byte_count;
-}
-
-/**
- * Reads a file into a char array.
- *
- * @param file File to read.
- * @param output Pointer that will hold the data that was read.
- * @param error Error output.
- *
- * @return Number of bytes read.
- */
-size_t gif_read_file(FILE *file, unsigned char **output, int *error) {
-  // Get the size.
-  fseek(file, 0, SEEK_END);
-  size_t size = ftell(file);
-  fseek(file, 0, SEEK_SET);
-
-  if (size <= 0) {
-    *error = GIF_ERR_FILEIO_NO_SIZE;
-    return 0;
-  }
-
-  // Allocate buffer memory.
-  unsigned char *data = malloc(size);
-  if (data == NULL) {
-    *error = GIF_ERR_MEMIO;
-    return 0;
-  }
-
-  // Read the file into the buffer.
-  size_t read = fread(data, 1, size, file);
-  if (read != size) {
-    *error = GIF_ERR_FILEIO_READ_ERROR;
-    free(data);
-    return 0;
-  }
-
-  *output = data;
-  return read;
 }
 
 /**
@@ -617,7 +579,7 @@ gif_parsed_t *gif_parsed_from_data(unsigned char *data, size_t size, int *error)
 gif_parsed_t *gif_parsed_from_file(FILE *file, int *error) {
   unsigned char *data = NULL;
 
-  size_t size = gif_read_file(file, &data, error);
+  size_t size = pngif_read_file(file, &data, error);
   if (*error != 0) {
     return NULL;
   }

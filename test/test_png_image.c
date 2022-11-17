@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  png_raw_t *raw = png_raw_read_file(argv[1], 0, &error);
+  png_raw_t *raw = png_raw_from_path(argv[1], 0, &error);
   if (raw == NULL || error != 0) {
     printf("Failed to parse file: %d.\n", error);
     return 0;

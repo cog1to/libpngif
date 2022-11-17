@@ -3,6 +3,7 @@
 #include <string.h>
 #include <inttypes.h>
 
+#include "utils.h"
 #include "png_raw.h"
 #include "png_util.h"
 
@@ -30,20 +31,22 @@ void png_chunk_free(png_chunk_raw_t *chunk) {
   free(chunk);
 }
 
-png_chunk_raw_t *read_chunk(FILE *file, int fail_on_crc, int *error) {
+png_chunk_raw_t *read_chunk(
+  unsigned char *data,
+  u_int32_t size,
+  u_int32_t offset,
+  int fail_on_crc,
+  u_int32_t *new_offset,
+  int *error
+) {
   uint32_t length = 0, crc = 0;
   char type[4] = { 0 };
-  size_t read = 0;
   unsigned char *body = NULL;
   unsigned char *type_with_body = NULL;
 
   // Length.
-  read = fread(&length, 4, 1, file);
+  memcpy(&length, data + offset, 4);
   length = __builtin_bswap32(length);
-  if (read <= 0) {
-    *error = PNG_ERR_FILEIO;
-    return NULL;
-  }
 
   type_with_body = malloc(length + 4);
   if (type_with_body == NULL) {
@@ -53,11 +56,7 @@ png_chunk_raw_t *read_chunk(FILE *file, int fail_on_crc, int *error) {
 
   // Read type + body to a single array. We do this because CRC checksum is
   // calculated for [type+data] instead of just [data].
-  read = fread(type_with_body, 1, length + 4, file);
-  if (read != (length + 4)) {
-    *error = PNG_ERR_FILEIO;
-    return NULL;
-  }
+  memcpy(type_with_body, data + offset + 4, length + 4);
 
   // Type.
   memcpy(type, type_with_body, 4);
@@ -74,13 +73,11 @@ png_chunk_raw_t *read_chunk(FILE *file, int fail_on_crc, int *error) {
   }
 
   // CRC.
-  read = fread(&crc, 4, 1, file);
+  memcpy(&crc, data + offset + length + 8, 4);
   crc = __builtin_bswap32(crc);
-  if (read <= 0) {
-    *error = PNG_ERR_FILEIO;
-    free(body);
-    return NULL;
-  }
+
+  // Update offset.
+  *new_offset = offset + length + 12;
 
   // Verify the CRC checksum.
   if (fail_on_crc) {
@@ -139,27 +136,13 @@ void png_raw_free(png_raw_t *png) {
   free(png);
 }
 
-png_raw_t *png_raw_read_file(const char *path, int fail_on_crc, int *error) {
-  FILE *file;
-  char buffer[1024] = { 0 };
+png_raw_t *png_raw_from_data(unsigned char *data, size_t size, int fail_on_crc, int *error) {
+  char header[9] = { 0 };
+  memcpy(header, data, 8);
 
-  file = fopen(path, "r");
-  if (file == NULL) {
-    *error = PNG_ERR_FILEIO;
-    return NULL;
-  }
-
-  // Read and verify header.
-  size_t read = fread(buffer, 1, 8, file);
-  if (read < 8) {
-    *error = PNG_ERR_FILEIO;
-    fclose(file);
-    return NULL;
-  }
-
-  if (strcmp(PNG_HEADER, buffer) != 0) {
+  // Verify header.
+  if (strcmp(PNG_HEADER, header) != 0) {
     *error = PNG_ERR_WRONG_HEADER;
-    fclose(file);
     return NULL;
   }
 
@@ -167,14 +150,14 @@ png_raw_t *png_raw_read_file(const char *path, int fail_on_crc, int *error) {
   png_raw_t *png = png_raw_create();
   if (png == NULL) {
     *error = PNG_ERR_MEMIO;
-    fclose(file);
     return NULL;
   }
 
   // Read chunks.
   int parse_error = 0;
   png_chunk_raw_t *chunk = NULL;
-  while ((chunk = read_chunk(file, fail_on_crc, &parse_error)) != NULL) {
+  u_int32_t offset = 8;
+  while ((chunk = read_chunk(data, size, offset, fail_on_crc, &offset, &parse_error)) != NULL) {
     if (parse_error != 0) {
       break;
     }
@@ -196,7 +179,31 @@ png_raw_t *png_raw_read_file(const char *path, int fail_on_crc, int *error) {
   }
 
   // Clean up and return.
-  fclose(file);
   return png;
+}
+
+png_raw_t *png_raw_from_file(FILE *file, int fail_on_crc, int *error) {
+  unsigned char *data = NULL;
+
+  size_t size = pngif_read_file(file, &data, error);
+  if (*error != 0) {
+    return NULL;
+  }
+
+  png_raw_t *raw = png_raw_from_data(data, size, fail_on_crc, error);
+  free(data);
+  return raw;
+}
+
+png_raw_t *png_raw_from_path(const char *filename, int fail_on_crc, int *error) {
+  FILE *file = fopen(filename, "r");
+  if (file == NULL) {
+    *error = PNG_ERR_FILEIO;
+    return 0;
+  }
+
+  png_raw_t *raw = png_raw_from_file(file, fail_on_crc, error);
+  fclose(file);
+  return raw;
 }
 

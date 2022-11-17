@@ -28,17 +28,37 @@ typedef struct {
 /** Raw parsing - API **/
 
 /**
- * Reads and parses a PNG file into a raw chunks list.
+ * Parses raw PNG data stream into a png_raw_t struct.
  *
- * @param path Path to a file to read.
- * @param fail_on_crc Flag indicating whether parsing should stop when
- *   CRC mismatch is encountered for one of the chunks.
+ * @param data PNG data.
+ * @param fail_on_crc Stop reading and return error of chunk's CRC is wrong.
  * @param error Error output.
  *
- * @return A pointer to parsed data container, or NULL in case an error
- *   occured.
+ * @return Raw PNG data, or NULL in case of fatal errors.
  */
-png_raw_t *png_raw_read_file(const char *path, int fail_on_crc, int *error);
+png_raw_t *png_raw_from_data(unsigned char *data, size_t size, int fail_on_crc, int *error);
+
+/**
+ * Loads and splits PNG data from a file handle into png_raw_t struct.
+ *
+ * @param file File to read.
+ * @param fail_on_crc Stop reading and return error of chunk's CRC is wrong.
+ * @param error Error output.
+ *
+ * @return Raw PNG data, or NULL in case of fatal errors.
+ */
+png_raw_t *png_raw_from_file(FILE *file, int fail_on_crc, int *error);
+
+/**
+ * Loads and splits PNG data from a file into png_raw_t struct.
+ *
+ * @param filename Path to the file to read.
+ * @param fail_on_crc Stop reading and return error of chunk's CRC is wrong.
+ * @param error Error output.
+ *
+ * @return Parsed PNG data, or NULL in case of fatal errors.
+ **/
+png_raw_t *png_raw_from_path(const char *filename, int fail_on_crc, int *error);
 
 /**
  * Frees the memory occupied by the raw data container.
