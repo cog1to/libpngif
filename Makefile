@@ -5,6 +5,8 @@ OBJ := $(SRC_FILES:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 UNAME := $(shell uname)
 CFLAGS := -Iinclude -fPIC
 LDFLAGS := -lz -lm
+PREFIX ?= usr/local
+DESTDIR ?= /
 
 ifeq ($(UNAME), Darwin)
 	ADDCFLAGS += -framework Cocoa -Isupport/
@@ -34,22 +36,28 @@ clean:
 		bin/test_image_viewer bin/*.dSYM
 	rm -f bin/libpngif.a bin/libpngif.so.0.1
 
-static: $(OBJ)
+# Libraries
+
+bin/libpngif.a: $(SRC_FILES) $(OBJ)
 	@mkdir -p bin
 	ar r bin/libpngif.a $(OBJ)
 	ranlib bin/libpngif.a
 
-dynamic: $(SRC_FILES) $(OBJ)
+static: bin/libpngif.a
+
+bin/libpngif.so.0.1: $(SRC_FILES) $(OBJ)
 	@mkdir -p bin
 	gcc -Wall $(LFLAGS) -o bin/libpngif.so.0.1 $(OBJ)
+
+dynamic: bin/libpngif.so.0.1
 
 # Installation
 
 install: static dynamic
 	cp -R include/pngif $(DESTDIR)$(PREFIX)/include/
 	cp bin/libpngif.so.0.1 $(DESTDIR)$(PREFIX)/lib/libpngif.so.0.1
-	ln -s $(DESTDIR)$(PREFIX)/lib/libpngif.so.0.1 $(DESTDIR)$(PREFIX)/lib/libpngif.so
-	cp bin/libpngif.a $(DESTDIR)$(PREFIX)/lib/
+	ln -s -f $(DESTDIR)$(PREFIX)/lib/libpngif.so.0.1 $(DESTDIR)$(PREFIX)/lib/libpngif.so
+	cp bin/libpngif.a $(DESTDIR)$(PREFIX)/lib/libpngif.a
 
 uninstall:
 	rm -rf $(DESTDIR)$(PREFIX)/include/pngif

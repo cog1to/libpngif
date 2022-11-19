@@ -124,6 +124,14 @@ tests have graphical interface that requires X11 on Linux or Cocoa on MacOS.
 
 Use `make`. It has targets for both `static` and `dynamic` libraries.
 
+`make install` will build and install both static and dynamic libraries into
+`PREFIX/lib` directory, and headers into `PREFIX/include` directory. The
+default prefix is `/usr/local`. You can override it with something like
+
+```
+make PREFIX=usr install
+```
+
 ## Tests
 
 There are some basic test executables for each interface level that you can use
