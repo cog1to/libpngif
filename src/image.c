@@ -207,25 +207,25 @@ animated_image_t *image_from_data(
   int ignore_background,
   int *error
 ) {
-  char header[4] = { 0 };
-  memcpy(header, data, 3);
+  char header[9] = { 0 };
+  memcpy(header, data, 8);
 
-  if (strcmp(header, "GIF") == 0) {
-    gif_decoded_t *decoded = gif_decoded_from_data(data, size, error);
-    if (*error != 0 || decoded == NULL) {
-      return NULL;
-    }
-
-    animated_image_t *image = image_from_decoded_gif(decoded, ignore_background, error);
-    free(decoded);
-    return image;
-  } else if (strcmp(header, "PNG") == 0) {
+  if (strcmp(PNG_HEADER, header) == 0) {
     png_t *decoded = png_decoded_from_data(data, size, error);
     if (*error != 0 || decoded == NULL) {
       return NULL;
     }
 
     animated_image_t *image = image_from_decoded_png(decoded, error);
+    free(decoded);
+    return image;
+  } else if (header[0] == 'G' && header[1] == 'I' && header[2] == 'F') {
+    gif_decoded_t *decoded = gif_decoded_from_data(data, size, error);
+    if (*error != 0 || decoded == NULL) {
+      return NULL;
+    }
+
+    animated_image_t *image = image_from_decoded_gif(decoded, ignore_background, error);
     free(decoded);
     return image;
   } else {

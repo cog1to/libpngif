@@ -7,10 +7,6 @@
 #include "png_raw.h"
 #include "png_util.h"
 
-/** Constants **/
-
-static const char PNG_HEADER[9] = { -119, 80, 78, 71, 13, 10, 26, 10, 0 };
-
 /** Private **/
 
 png_raw_t *png_raw_create() {

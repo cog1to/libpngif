@@ -232,6 +232,41 @@ image_holder_t *image_holder_from_gif(gif_decoded_t *gif, Display *display, Visu
   return holder;
 }
 
+image_holder_t *image_holder_from_image(animated_image_t *image, Display *display, Visual *visual) {
+  if (image == NULL || image->frame_count == 0) {
+    return NULL;
+  }
+
+  image_holder_t *holder = malloc(sizeof(image_holder_t));
+  if (holder == NULL) {
+    return NULL;
+  }
+
+  holder->width = image->width;
+  holder->height = image->height;
+  holder->index = 0;
+  holder->running = 0;
+
+  holder->frames = malloc(sizeof(image_holder_frame_t) * image->frame_count);
+  holder->length = image->frame_count;
+
+  for (int idx = 0; idx < image->frame_count; idx++) {
+    image_frame_t *frame = image->frames + idx;
+    holder->frames[idx].delay_ms = frame->duration_ms;
+    holder->frames[idx].image = ximage_from_data(
+      display, visual,
+      frame->rgba,
+      image->width, image->height,
+      0, 0,
+      image->width, image->height,
+      1
+    );
+  }
+
+  return holder;
+}
+
+
 void image_holder_set_frame_delay(image_holder_t *holder, struct itimerspec *spec, int index) {
   if (holder->length == 0) {
     spec->it_value.tv_sec = 0;
@@ -283,7 +318,18 @@ void show_decoded_png(png_t *png) {
 }
 
 void show_image(animated_image_t *image) {
+  Display *display = XOpenDisplay(NULL);
+  XVisualInfo vinfo;
+  XMatchVisualInfo(display, DefaultScreen(display), 32, TrueColor, &vinfo);
 
+  image_holder_t *holder = image_holder_from_image(image, display, vinfo.visual);
+  if (holder == NULL) {
+    printf("Failed to convert animated image to image_holder_t\n");
+    return;
+  }
+
+  run_window_with_image_holder(holder, display, vinfo);
+  image_holder_free(holder);
 }
 
 void show_decoded_gif(gif_decoded_t *gif) {

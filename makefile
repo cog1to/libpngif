@@ -85,6 +85,11 @@ test_png_image: $(SRC_FILES) test/test_png_image.c
 	gcc -Wall -o bin/test_png_image $(LDFLAGS) $(CFLAGS) $(ADDCFLAGS) \
 		$(SRC_FILES) test/test_png_image.c $(IMAGE_VIEWER_TARGET)
 
+test_image: $(SRC_FILES) test/test_image_viewer.c
+	make test_setup
+	gcc -Wall -o bin/test_image_viewer $(LDFLAGS) $(CFLAGS) $(ADDCFLAGS) \
+		$(SRC_FILES) test/test_image_viewer.c $(IMAGE_VIEWER_TARGET)
+
 tests: $(SRC_FILES)
 	make test_gif_parsed
 	make test_gif_codes
@@ -94,4 +99,5 @@ tests: $(SRC_FILES)
 	make test_png_parsed
 	make test_png_decoded
 	make test_png_image
+	make test_image
 

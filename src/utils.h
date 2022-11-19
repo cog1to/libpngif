@@ -1,6 +1,8 @@
 #ifndef PNGIF_UTILS_INCLUDE
 #define PNGIF_UTILS_INCLUDE
 
+static const char PNG_HEADER[9] = { -119, 80, 78, 71, 13, 10, 26, 10, 0 };
+
 /**
  * Reads a file into a char array.
  *
