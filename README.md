@@ -78,10 +78,10 @@ You can look at `test/*.c` files for basic usage. Quick example going through
 all abstraction levels:
 
 ```c
-#include "png_raw.h"
-#include "png_parsed.h"
-#include "png_decoded.h"
-#include "image.h"
+#include <pngif/png_raw.h>
+#include <pngif/png_parsed.h>
+#include <pngif/png_decoded.h>
+#include <pngif/image.h>
 
 int error = 0;
 
@@ -91,8 +91,10 @@ png_parsed_t *parsed = png_parsed_from_raw(raw, &error);
 png_decoded_t *decoded = png_decoded_from_parsed(parsed, &error);
 animated_image_t *image = image_from_decoded_png(decoded, &error);
 
-// Do stuff with your image.
-// ...
+for (int idx = 0; idx < image->frame_count; idx++) {
+  image_frame_t frame = image->frames[idx];
+  // Draw it or something, I don't know.
+}
 
 // Cleanup.
 png_raw_free(raw);
@@ -105,6 +107,9 @@ Image interface can detect image format from the file's header, so on the
 highest level you can just use this:
 
 ```c
+#include <pngif/image.h>
+
+int error = 0;
 animated_image_t *image = image_from_path("sample.png", 1, &error);
 // Do stuff with your image.
 animated_image_free(image);
