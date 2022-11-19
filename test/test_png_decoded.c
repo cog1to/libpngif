@@ -1,5 +1,5 @@
 /**
- * Takes a PNG file, decodes it into png_t, and displays
+ * Takes a PNG file, decodes it into png_decoded_t, and displays
  * each frame. Requires a window system to work, since it creates a
  * window to show the final result.
  */
@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  png_t *png = png_decoded_from_path(argv[1], &error);
+  png_decoded_t *png = png_decoded_from_path(argv[1], &error);
   if (png == NULL || error != 0) {
     printf("Failed to decode PNG data: %d.\n", error);
     return 1;
@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
 
   show_decoded_png(png);
 
-  png_free(png);
+  png_decoded_free(png);
   return 0;
 }
 

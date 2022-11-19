@@ -61,7 +61,7 @@ animated_image_t *image_from_decoded_gif(
  *
  * @return Animated image data or NULL in case of any errors.
  */
-animated_image_t *image_from_decoded_png(png_t *png, int *error);
+animated_image_t *image_from_decoded_png(png_decoded_t *png, int *error);
 
 /**
  * Creates animated image from raw GIF or PNG data.

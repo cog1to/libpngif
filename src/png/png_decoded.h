@@ -33,7 +33,7 @@ typedef struct {
 
   // Additional data.
   png_frame_list_t *frames;
-} png_t;
+} png_decoded_t;
 
 /** Interface **/
 
@@ -42,7 +42,7 @@ typedef struct {
  *
  * @param png Image to free.
  */
-void png_free(png_t *png);
+void png_decoded_free(png_decoded_t *png);
 
 /**
  * Creates a PNG image from a parsed PNG data.
@@ -52,7 +52,7 @@ void png_free(png_t *png);
  *
  * @return Decoded PNG image, or NULL in case an error occurred.
  */
-png_t *png_decoded_from_parsed(png_parsed_t *parsed, int *error);
+png_decoded_t *png_decoded_from_parsed(png_parsed_t *parsed, int *error);
 
 /**
  * Creates a parsed PNG struct out of raw PNG data.
@@ -63,7 +63,7 @@ png_t *png_decoded_from_parsed(png_parsed_t *parsed, int *error);
  *
  * @return Decoded PNG data struct or NULL in case of an error.
  */
-png_t *png_decoded_from_data(unsigned char *data, size_t size, int *error);
+png_decoded_t *png_decoded_from_data(unsigned char *data, size_t size, int *error);
 
 /**
  * Creates a parsed PNG struct out of data from file handle.
@@ -73,7 +73,7 @@ png_t *png_decoded_from_data(unsigned char *data, size_t size, int *error);
  *
  * @return Decoded PNG data struct or NULL in case of an error.
  */
-png_t *png_decoded_from_file(FILE *file, int *error);
+png_decoded_t *png_decoded_from_file(FILE *file, int *error);
 
 /**
  * Creates a decoded PNG struct out of data from file at given path.
@@ -83,6 +83,6 @@ png_t *png_decoded_from_file(FILE *file, int *error);
  *
  * @return Decoded PNG data struct or NULL in case of an error.
  */
-png_t *png_decoded_from_path(char *path, int *error);
+png_decoded_t *png_decoded_from_path(char *path, int *error);
 
 #endif

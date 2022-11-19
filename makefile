@@ -3,7 +3,7 @@ OBJ_DIR := obj
 SRC_FILES := $(wildcard $(SRC_DIR)/*.c) $(wildcard $(SRC_DIR)/gif/*.c) $(wildcard $(SRC_DIR)/png/*.c)
 OBJ := $(SRC_FILES:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 UNAME := $(shell uname)
-CFLAGS := -Isrc -Isrc/gif -Isrc/png
+CFLAGS := -Isrc -Isrc/gif -Isrc/png -fPIC
 LDFLAGS := -lz -lm
 
 ifeq ($(UNAME), Darwin)
@@ -13,7 +13,7 @@ ifeq ($(UNAME), Darwin)
 else
 	ADDCFLAGS += -lX11 -Isupport/
 	IMAGE_VIEWER_TARGET += support/image_viewer_linux.c
-	LFLAGS += -shared -fPIC -wl,-soname,libpngif.so.0
+	LFLAGS += -shared -o libpngif.so.0
 endif
 
 all: $(SRC_FILES)
@@ -31,7 +31,7 @@ clean:
 	rm -rf $(OBJ)
 	rm -rf bin/test_gif_parsed bin/test_gif_codes bin/test_gif_decoded bin/test_gif_image \
 		bin/test_png_parsed bin/test_png_decoded bin/test_png_image bin/test_png_chunks \
-		bin/*.dSYM
+		bin/test_image_viewer bin/*.dSYM
 	rm -f bin/libpngif.a bin/libpngif.so.0.1
 
 static: $(OBJ)
@@ -39,7 +39,7 @@ static: $(OBJ)
 	ar r bin/libpngif.a $(OBJ)
 	ranlib bin/libpngif.a
 
-dynamic: $(SRC_FILES)
+dynamic: $(SRC_FILES) $(OBJ)
 	@mkdir -p bin
 	gcc -Wall $(LFLAGS) -o bin/libpngif.so.0.1 $(OBJ)
 
@@ -86,7 +86,7 @@ test_png_image: $(SRC_FILES) test/test_png_image.c
 	gcc -Wall -o bin/test_png_image $(LDFLAGS) $(CFLAGS) $(ADDCFLAGS) \
 		$(SRC_FILES) test/test_png_image.c $(IMAGE_VIEWER_TARGET)
 
-test_image: $(SRC_FILES) test/test_image_viewer.c
+test_image_viewer: $(SRC_FILES) test/test_image_viewer.c
 	make test_setup
 	gcc -Wall -o bin/test_image_viewer $(LDFLAGS) $(CFLAGS) $(ADDCFLAGS) \
 		$(SRC_FILES) test/test_image_viewer.c $(IMAGE_VIEWER_TARGET)
@@ -100,5 +100,5 @@ tests: $(SRC_FILES)
 	make test_png_parsed
 	make test_png_decoded
 	make test_png_image
-	make test_image
+	make test_image_viewer
 

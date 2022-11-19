@@ -663,7 +663,7 @@ unsigned char *decode_image(
   }
 }
 
-void decode_frames(png_t *png, png_parsed_t *parsed, int *error) {
+void decode_frames(png_decoded_t *png, png_parsed_t *parsed, int *error) {
   u_int32_t num_frames = parsed->anim_control->num_frames;
   if (num_frames <= 0) {
     return;
@@ -732,7 +732,7 @@ void decode_frames(png_t *png, png_parsed_t *parsed, int *error) {
 
 /** Public **/
 
-void png_free(png_t *png) {
+void png_decoded_free(png_decoded_t *png) {
   if (png == NULL) {
     return;
   }
@@ -754,7 +754,7 @@ void png_free(png_t *png) {
   free(png);
 }
 
-png_t *png_decoded_from_parsed(png_parsed_t *parsed, int *error) {
+png_decoded_t *png_decoded_from_parsed(png_parsed_t *parsed, int *error) {
   if (parsed == NULL || parsed->data.length == 0 || parsed->data.data == NULL) {
     return NULL;
   }
@@ -801,7 +801,7 @@ png_t *png_decoded_from_parsed(png_parsed_t *parsed, int *error) {
   }
 
   // Allocate PNG struct.
-  png_t *result = malloc(sizeof(png_t));
+  png_decoded_t *result = malloc(sizeof(png_decoded_t));
   if (result == NULL) {
     *error = PNG_ERR_MEMIO;
     return NULL;
@@ -821,35 +821,35 @@ png_t *png_decoded_from_parsed(png_parsed_t *parsed, int *error) {
   return result;
 }
 
-png_t *png_decoded_from_data(unsigned char *data, size_t size, int *error) {
+png_decoded_t *png_decoded_from_data(unsigned char *data, size_t size, int *error) {
   png_parsed_t *parsed = png_parsed_from_data(data, size, error);
   if (*error != 0) {
     return NULL;
   }
 
-  png_t *decoded = png_decoded_from_parsed(parsed, error);
+  png_decoded_t *decoded = png_decoded_from_parsed(parsed, error);
   png_parsed_free(parsed);
   return decoded;
 }
 
-png_t *png_decoded_from_file(FILE *file, int *error) {
+png_decoded_t *png_decoded_from_file(FILE *file, int *error) {
   png_parsed_t *parsed = png_parsed_from_file(file, error);
   if (*error != 0) {
     return NULL;
   }
 
-  png_t *decoded = png_decoded_from_parsed(parsed, error);
+  png_decoded_t *decoded = png_decoded_from_parsed(parsed, error);
   png_parsed_free(parsed);
   return decoded;
 }
 
-png_t *png_decoded_from_path(char *path, int *error) {
+png_decoded_t *png_decoded_from_path(char *path, int *error) {
   png_parsed_t *parsed = png_parsed_from_path(path, error);
   if (*error != 0) {
     return NULL;
   }
 
-  png_t *decoded = png_decoded_from_parsed(parsed, error);
+  png_decoded_t *decoded = png_decoded_from_parsed(parsed, error);
   png_parsed_free(parsed);
   return decoded;
 }

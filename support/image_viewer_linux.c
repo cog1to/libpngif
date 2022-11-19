@@ -138,7 +138,7 @@ typedef struct {
   int running;
 } image_holder_t;
 
-image_holder_t *image_holder_from_png(png_t *png, Display *display, Visual *visual) {
+image_holder_t *image_holder_from_png(png_decoded_t *png, Display *display, Visual *visual) {
   if (png == NULL || png->data == NULL) {
     return NULL;
   }
@@ -302,7 +302,7 @@ void run_window_with_image_holder(image_holder_t *holder, Display *display, XVis
 
 /** Public API **/
 
-void show_decoded_png(png_t *png) {
+void show_decoded_png(png_decoded_t *png) {
   Display *display = XOpenDisplay(NULL);
   XVisualInfo vinfo;
   XMatchVisualInfo(display, DefaultScreen(display), 32, TrueColor, &vinfo);

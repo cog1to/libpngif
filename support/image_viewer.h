@@ -5,6 +5,6 @@
 
 void show_image(animated_image_t *image);
 void show_decoded_gif(gif_decoded_t *gif);
-void show_decoded_png(png_t *png);
+void show_decoded_png(png_decoded_t *png);
 
 #endif

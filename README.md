@@ -22,7 +22,7 @@ at some point; everything else - not necessarily.
 
 Decoders for both formats are structured into 3-4 "levels":
 
-*Level 0*: Raw. Breaks the file into the minimal useful logical parts.
+**Level 0**: Raw. Breaks the file into the minimal useful logical parts.
 
 For PNG, it's individual "chunks". Each chunk has a length field embedded in it
 so you can always just read the chunk's header, length, and skip the data to
@@ -35,13 +35,13 @@ the block's format and length to be able to correctly read/skip it. Because the
 block structure knowledge is already kind of required at this level, there's no
 point in simply "splitting" the file into raw byte blocks.
 
-*Level 1*: Parsed. Parses logical blocks from Level 0 from simple byte array
+**Level 1**: Parsed. Parses logical blocks from Level 0 from simple byte array
 into a useful and structured data. For example, PLTE (color palette) chunk in
 a PNG file is parsed into a proper color palette struct.
 
 Look into `gif_parsed.h` and `png_parsed.h` headers.
 
-*Level 2*: Decoded. Decodes parsed image data into more high-level image
+**Level 2**: Decoded. Decodes parsed image data into more high-level image
 containers. For example, raw image chunk data from GIF file is decompressed,
 deinteraced, translated from color table indices into actual RGBA values.
 
@@ -51,7 +51,7 @@ data containers on this level.
 
 Look into `gif_decoded.h` and `png_decoded.h` headers.
 
-*Level 3*: Image. Final format-independent image container. Holds a list of
+**Level 3**: Image. Final format-independent image container. Holds a list of
 frames extracted from the image file, with some additional metadata (like frame
 duration). Each frame is an RGBA-represented image ready to be rendered without
 any additional transformations.
@@ -88,7 +88,7 @@ int error = 0;
 // Error checks after each call are assumed.
 png_raw_t *raw = png_raw_from_path("sample.png", &error);
 png_parsed_t *parsed = png_parsed_from_raw(raw, &error);
-png_t *decoded = png_decoded_from_parsed(parsed, &error);
+png_decoded_t *decoded = png_decoded_from_parsed(parsed, &error);
 animated_image_t *image = image_from_decoded_png(decoded, &error);
 
 // Do stuff with your image.
@@ -97,7 +97,7 @@ animated_image_t *image = image_from_decoded_png(decoded, &error);
 // Cleanup.
 png_raw_free(raw);
 png_parsed_free(parsed);
-png_free(decoded);
+png_decoded_free(decoded);
 animated_image_free(image);
 ```
 

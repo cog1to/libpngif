@@ -130,7 +130,7 @@ animated_image_t *image_from_decoded_gif(gif_decoded_t *gif, int ignore_backgrou
   return output;
 }
 
-animated_image_t *image_from_decoded_png(png_t *png, int *error) {
+animated_image_t *image_from_decoded_png(png_decoded_t *png, int *error) {
   if (png == NULL)
     return NULL;
 
@@ -211,13 +211,13 @@ animated_image_t *image_from_data(
   memcpy(header, data, 8);
 
   if (strcmp(PNG_HEADER, header) == 0) {
-    png_t *decoded = png_decoded_from_data(data, size, error);
+    png_decoded_t *decoded = png_decoded_from_data(data, size, error);
     if (*error != 0 || decoded == NULL) {
       return NULL;
     }
 
     animated_image_t *image = image_from_decoded_png(decoded, error);
-    free(decoded);
+    png_decoded_free(decoded);
     return image;
   } else if (header[0] == 'G' && header[1] == 'I' && header[2] == 'F') {
     gif_decoded_t *decoded = gif_decoded_from_data(data, size, error);
@@ -226,7 +226,7 @@ animated_image_t *image_from_data(
     }
 
     animated_image_t *image = image_from_decoded_gif(decoded, ignore_background, error);
-    free(decoded);
+    gif_decoded_free(decoded);
     return image;
   } else {
     *error = PNGIF_ERR_UNKNOWN_FORMAT;
