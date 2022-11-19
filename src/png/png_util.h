@@ -27,31 +27,4 @@
  **/
 u_int32_t u_crc32(void *input, size_t length);
 
-/**
- * Prints byte in binary form to standard ouput.
- * 
- * @param x Byte to print.
- */
-void print_binary(unsigned char x);
-
-/**
- * RGBA to ARGB converter.
- *
- * @param src RGBA data array.
- * @param dest ARGB output array. Must be preallocated with the right size.
- * @oaram width Image width.
- * @oaram height Image height.
- */
-void rgba_to_argb(unsigned char *rgba, unsigned char *argb, size_t width, size_t height);
-
-/**
- * RGBA to BGRA converter.
- *
- * @param src RGBA data array.
- * @param dest BGRA output array. Must be preallocated with the right size.
- * @oaram width Image width.
- * @oaram height Image height.
- */
-void rgba_to_bgra(unsigned char *rgba, unsigned char *argb, size_t width, size_t height);
-
 #endif

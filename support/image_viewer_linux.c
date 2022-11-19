@@ -12,7 +12,7 @@
 #include "png_decoded.h"
 #include "gif_decoded.h"
 #include "image.h"
-#include "png_util.h"
+#include "utils.h"
 
 /** Private **/
 
