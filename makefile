@@ -4,15 +4,15 @@ SRC_FILES := $(wildcard $(SRC_DIR)/*.c) $(wildcard $(SRC_DIR)/gif/*.c) $(wildcar
 OBJ := $(SRC_FILES:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 UNAME := $(shell uname)
 CFLAGS := -Isrc -Isrc/gif -Isrc/png
-LDFLAGS := -lz
+LDFLAGS := -lz -lm
 
 ifeq ($(UNAME), Darwin)
 	ADDCFLAGS += -framework Cocoa -Isupport/
 	IMAGE_VIEWER_TARGET += support/animator.m support/appdelegate.m support/image_viewer_mac.m
 	LFLAGS += -Wl,-undefined -Wl,dynamic_lookup
 else
-	ADDCFLAGS +=
-	IMAGE_VIEWER_TARGET +=
+	ADDCFLAGS += -lX11 -Isupport/
+	IMAGE_VIEWER_TARGET += support/image_viewer_linux.c
 	LFLAGS += -shared -fPIC -wl,-soname,libpngif.so.0
 endif
 
@@ -35,40 +35,53 @@ clean:
 	rm -f bin/libpngif.a bin/libpngif.so.0.1
 
 static: $(OBJ)
+	@mkdir -p bin
 	libtool -static -o bin/libpngif.a $(OBJ)
 
 dynamic: $(SRC_FILES)
+	@mkdir -p bin
 	gcc -Wall $(LFLAGS) -o bin/libpngif.so.0.1 $(OBJ)
 
 # Tests - GIF
 
+test_setup:
+	@mkdir -p bin
+
 test_gif_parsed: $(SRC_FILES) test/test_gif_parsed.c
+	make test_setup
 	gcc -Wall -o bin/test_gif_parsed $(LDFLAGS) $(CFLAGS) $(SRC_FILES) test/test_gif_parsed.c
 
 test_gif_codes: $(SRC_FILES) test/test_read_code.c
+	make test_setup
 	gcc -Wall -o bin/test_gif_codes $(LDFLAGS) $(CFLAGS) $(SRC_FILES) test/test_read_code.c
 
 test_gif_decoded: $(SRC_FILES) test/test_gif_decoded.c
+	make test_setup
 	gcc -Wall -o bin/test_gif_decoded $(LDFLAGS) $(CFLAGS) $(ADDCFLAGS) \
 		$(SRC_FILES) test/test_gif_decoded.c $(IMAGE_VIEWER_TARGET)
 
 test_gif_image: $(SRC_FILES) test/test_gif_image.c
+	make test_setup
 	gcc -Wall -o bin/test_gif_image $(LDFLAGS) $(CFLAGS) $(ADDCFLAGS) \
 		$(SRC_FILES) test/test_gif_image.c $(IMAGE_VIEWER_TARGET)
 
 # Tests - PNG
 
 test_png_chunks: $(SRC_FILES) test/test_png_chunks.c
+	make test_setup
 	gcc -Wall -o bin/test_png_chunks $(LDFLAGS) $(CFLAGS) $(SRC_FILES) test/test_png_chunks.c
 
 test_png_parsed: $(SRC_FILES) test/test_png_parsed.c
+	make test_setup
 	gcc -Wall -o bin/test_png_parsed $(LDFLAGS) $(CFLAGS) $(SRC_FILES) test/test_png_parsed.c
 
 test_png_decoded: $(SRC_FILES) test/test_png_decoded.c
+	make test_setup
 	gcc -Wall -o bin/test_png_decoded $(LDFLAGS) $(CFLAGS) $(ADDCFLAGS) \
 		$(SRC_FILES) test/test_png_decoded.c $(IMAGE_VIEWER_TARGET)
 
 test_png_image: $(SRC_FILES) test/test_png_image.c
+	make test_setup
 	gcc -Wall -o bin/test_png_image $(LDFLAGS) $(CFLAGS) $(ADDCFLAGS) \
 		$(SRC_FILES) test/test_png_image.c $(IMAGE_VIEWER_TARGET)
 
