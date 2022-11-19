@@ -374,6 +374,7 @@ unsigned char *gif_decode_image_data(
   unsigned char *sequence = NULL;
   int is_end = 0, is_reset = 0;
   unsigned char buffer[2048] = { 0 };
+  unsigned char seqtmp[2048] = { 0 };
   int max_code_count = 1 << code_size;
 
   gif_lzw_code_table *table = gif_lzw_code_table_init(color_table_size);
@@ -480,16 +481,23 @@ unsigned char *gif_decode_image_data(
           color_table,
           transparent_color_index
         );
-        // New code entry: previous sequence + first element in new one
+        /* New code entry: previous sequence + first element in new one */
+        // Copy sequence to temp store, because code table append can move the
+        // data to a different memory block.
         seq_size = (u_int16_t *)sequence;
+        memcpy(seqtmp, sequence, *seq_size + 2);
+
+        // Append first element to the buffer.
+        seq_size = (u_int16_t *)seqtmp;
         buf_size = (u_int16_t *)buffer;
         buffer[*buf_size + 2] = sequence[2];
         *buf_size = *buf_size + 1;
+
         // Append new entry to the code table.
         gif_lzw_code_table_append_element(table, buffer, error);
 
         // Replace buffer with current sequence.
-        memcpy(buffer, sequence, *seq_size + 2);
+        memcpy(buffer, seqtmp, *seq_size + 2);
         sequence = NULL;
       }
 
