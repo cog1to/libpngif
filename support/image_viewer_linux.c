@@ -9,10 +9,10 @@
 #include <sys/timerfd.h>
 #include <stdarg.h>
 
-#include "png_decoded.h"
-#include "gif_decoded.h"
-#include "image.h"
-#include "utils.h"
+#include <pngif/png_decoded.h>
+#include <pngif/gif_decoded.h>
+#include <pngif/image.h>
+#include <pngif/utils.h>
 
 /** Private **/
 
