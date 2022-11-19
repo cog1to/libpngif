@@ -1,7 +1,7 @@
 #ifndef _PNG_RAW_INCLUDE
 #define _PNG_RAW_INCLUDE
 
-#include "errors.h"
+#include <pngif/errors.h>
 
 typedef u_int32_t uint32_t;
 

@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 
-#include "gif_parsed.h"
+#include <pngif/gif_parsed.h>
 
 /** Data types **/
 

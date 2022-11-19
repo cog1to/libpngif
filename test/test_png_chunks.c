@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "png_raw.h"
+#include <pngif/png_raw.h>
 
 int main(int argc, char **argv) {
   if (argc < 2) {

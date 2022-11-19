@@ -4,10 +4,10 @@
 #include <arpa/inet.h>
 #include <math.h>
 
-#include "png_util.h"
-#include "png_raw.h"
-#include "png_parsed.h"
-#include "png_decoded.h"
+#include <pngif/utils.h>
+#include <pngif/png_raw.h>
+#include <pngif/png_parsed.h>
+#include <pngif/png_decoded.h>
 
 /** Private **/
 

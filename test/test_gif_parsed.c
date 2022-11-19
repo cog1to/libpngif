@@ -7,8 +7,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <errors.h>
-#include <gif_parsed.h>
+#include <pngif/errors.h>
+#include <pngif/gif_parsed.h>
 
 int main(int argc, char **argv) {
   if (argc < 2) {

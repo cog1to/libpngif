@@ -1,7 +1,22 @@
 #ifndef PNGIF_UTILS_INCLUDE
 #define PNGIF_UTILS_INCLUDE
 
+/* PNG file header */
 static const char PNG_HEADER[9] = { -119, 80, 78, 71, 13, 10, 26, 10, 0 };
+
+/* PNG color types */
+#define COLOR_TYPE_GRAYSCALE 0
+#define COLOR_TYPE_TRUECOLOR 2
+#define COLOR_TYPE_INDEXED 3
+#define COLOR_TYPE_GRAYSCALE_ALPHA 4
+#define COLOR_TYPE_TRUECOLOR_ALPHA 6
+
+/* PNG filter types */
+#define FILTER_NONE 0
+#define FILTER_SUB 1
+#define FILTER_UP 2
+#define FILTER_AVG 3
+#define FILTER_PAETH 4
 
 /**
  * Reads a file into a char array.

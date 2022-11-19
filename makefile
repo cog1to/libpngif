@@ -3,7 +3,7 @@ OBJ_DIR := obj
 SRC_FILES := $(wildcard $(SRC_DIR)/*.c) $(wildcard $(SRC_DIR)/gif/*.c) $(wildcard $(SRC_DIR)/png/*.c)
 OBJ := $(SRC_FILES:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 UNAME := $(shell uname)
-CFLAGS := -Isrc -Isrc/gif -Isrc/png -fPIC
+CFLAGS := -Iinclude -fPIC
 LDFLAGS := -lz -lm
 
 ifeq ($(UNAME), Darwin)
@@ -42,6 +42,20 @@ static: $(OBJ)
 dynamic: $(SRC_FILES) $(OBJ)
 	@mkdir -p bin
 	gcc -Wall $(LFLAGS) -o bin/libpngif.so.0.1 $(OBJ)
+
+# Installation
+
+install: static dynamic
+	cp -R include/pngif $(DESTDIR)$(PREFIX)/include/
+	cp bin/libpngif.so.0.1 $(DESTDIR)$(PREFIX)/lib/libpngif.so.0.1
+	ln -s $(DESTDIR)$(PREFIX)/lib/libpngif.so.0.1 $(DESTDIR)$(PREFIX)/lib/libpngif.so
+	cp bin/libpngif.a $(DESTDIR)$(PREFIX)/lib/
+
+uninstall:
+	rm -rf $(DESTDIR)$(PREFIX)/include/pngif
+	rm $(DESTDIR)$(PREFIX)/lib/libpngif.so.0.1 \
+		$(DESTDIR)$(PREFIX)/lib/libpngif.so \
+		$(DESTDIR)$(PREFIX)/lib/libpngif.a
 
 # Tests - GIF
 

@@ -6,9 +6,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "png_util.h"
-#include "png_raw.h"
-#include "png_parsed.h"
+#include <pngif/utils.h>
+#include <pngif/png_raw.h>
+#include <pngif/png_parsed.h>
 
 int main(int argc, char **argv) {
   if (argc < 2) {

@@ -3,8 +3,8 @@
 
 #include <stdlib.h>
 
-#include "errors.h"
-#include "png_raw.h"
+#include <pngif/errors.h>
+#include <pngif/png_raw.h>
 
 /** Data types **/
 

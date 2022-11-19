@@ -1,8 +1,8 @@
 #ifndef _PNG_DECODER_INCLUDE
 #define _PNG_DECODER_INCLUDE
 
-#include "errors.h"
-#include "png_parsed.h"
+#include <pngif/errors.h>
+#include <pngif/png_parsed.h>
 
 /** Data types **/
 

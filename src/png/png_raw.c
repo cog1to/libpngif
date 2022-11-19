@@ -3,8 +3,8 @@
 #include <string.h>
 #include <inttypes.h>
 
-#include "utils.h"
-#include "png_raw.h"
+#include <pngif/utils.h>
+#include <pngif/png_raw.h>
 #include "png_util.h"
 
 /** Private **/

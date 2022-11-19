@@ -8,10 +8,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <errors.h>
-#include <gif_parsed.h>
-#include <gif_decoded.h>
-#include <image.h>
+#include <pngif/errors.h>
+#include <pngif/gif_parsed.h>
+#include <pngif/gif_decoded.h>
+#include <pngif/image.h>
 
 #include "image_viewer.h"
 

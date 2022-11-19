@@ -1,5 +1,5 @@
 #import <Cocoa/Cocoa.h>
-#import <image.h>
+#import <pngif/image.h>
 
 @interface Animator: NSObject
   -(id)initWithDecodedGif:(gif_decoded_t *)gif;

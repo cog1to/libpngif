@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "utils.h"
-#include "errors.h"
-#include "image.h"
+#include <pngif/utils.h>
+#include <pngif/errors.h>
+#include <pngif/image.h>
 
 /** Private declarations **/
 

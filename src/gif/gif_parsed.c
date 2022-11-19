@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "utils.h"
-#include "errors.h"
-#include "gif_parsed.h"
+#include <pngif/utils.h>
+#include <pngif/errors.h>
+#include <pngif/gif_parsed.h>
 
 /** Private **/
 

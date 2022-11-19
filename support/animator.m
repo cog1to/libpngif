@@ -1,6 +1,6 @@
 #import <Cocoa/Cocoa.h>
-#import <gif_decoded.h>
-#import <image.h>
+#import <pngif/gif_decoded.h>
+#import <pngif/image.h>
 #import <animator.h>
 
 /** Image data **/

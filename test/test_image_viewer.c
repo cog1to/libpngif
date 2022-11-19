@@ -8,8 +8,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <errors.h>
-#include "image.h"
+#include <pngif/errors.h>
+#include <pngif/image.h>
 #include "image_viewer.h"
 
 int main(int argc, char **argv) {

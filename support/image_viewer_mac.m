@@ -1,6 +1,6 @@
 #import <Cocoa/Cocoa.h>
 
-#import "image.h"
+#import <pngif/image.h>
 #import "animator.h"
 #import "appdelegate.h"
 

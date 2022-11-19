@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "errors.h"
+#include <pngif/errors.h>
 
 size_t pngif_read_file(FILE *file, unsigned char **output, int *error) {
   // Get the size.
