@@ -10,10 +10,12 @@ ifeq ($(UNAME), Darwin)
 	ADDCFLAGS += -framework Cocoa -Isupport/
 	IMAGE_VIEWER_TARGET += support/animator.m support/appdelegate.m support/image_viewer_mac.m
 	LFLAGS += -Wl,-undefined -Wl,dynamic_lookup
+	STATIC_RUNNER += libtool -static -o
 else
 	ADDCFLAGS += -lX11 -Isupport/
 	IMAGE_VIEWER_TARGET += support/image_viewer_linux.c
 	LFLAGS += -shared -fPIC -wl,-soname,libpngif.so.0
+	STATIC_RUNNER += ar r -o
 endif
 
 all: $(SRC_FILES)
@@ -36,7 +38,8 @@ clean:
 
 static: $(OBJ)
 	@mkdir -p bin
-	libtool -static -o bin/libpngif.a $(OBJ)
+	ar r bin/libpngif.a $(OBJ)
+	ranlib bin/libpngif.a
 
 dynamic: $(SRC_FILES)
 	@mkdir -p bin
