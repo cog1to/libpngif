@@ -84,7 +84,7 @@
   return self;
 }
 
--(id)initWithDecodedPng:(png_t *)png {
+-(id)initWithDecodedPng:(png_decoded_t *)png {
   if (self = [super init]) {
     if (png == NULL) {
       return self;

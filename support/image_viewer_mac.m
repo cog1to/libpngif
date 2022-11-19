@@ -75,7 +75,7 @@ void show_decoded_gif(gif_decoded_t *gif) {
   window_with_image_animator(gif->width, gif->height, animator);
 }
 
-void show_decoded_png(png_t *png) {
+void show_decoded_png(png_decoded_t *png) {
   Animator *animator = [[[Animator alloc] initWithDecodedPng:png] autorelease];
   window_with_image_animator(png->width, png->height, animator);
 }
