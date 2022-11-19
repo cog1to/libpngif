@@ -3,6 +3,11 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <string.h>
+#include <signal.h>
+#include <unistd.h>
+#include <sys/signalfd.h>
+#include <sys/timerfd.h>
+#include <stdarg.h>
 
 #include "png_decoded.h"
 #include "gif_decoded.h"
@@ -11,23 +16,41 @@
 
 /** Private **/
 
+int max_fd(int count, ...) {
+  va_list args;
+  int max = 0, cur = 0;
+  va_start(args, count);
+  for (int idx = 0; idx < count; idx++) {
+    cur = va_arg(args, int);
+    if (cur > max) {
+      max = cur;
+    }
+  }
+  va_end(args);
+  return max;
+}
+
 XImage *ximage_from_data(
   Display *display, Visual *visual,
   unsigned char *image,
-  int canvas_width, int canvas_height,
-  int offset_x, int offset_y,
-  int width, int height
+  int32_t canvas_width, int32_t canvas_height,
+  int32_t offset_x, int32_t offset_y,
+  int32_t width, int32_t height,
+  int transparent
 ) {
-  // XLib wants BGRA image format, so convert it.
-  unsigned char *brga = malloc(width * height * 4);
-  rgba_to_bgra(image, brga, width, height);
+  // XLib wants BGRA data instead of RGBA.
+  unsigned char *bgra = malloc(width * height * 4);
+  rgba_to_bgra(image, bgra, width, height);
 
-  unsigned char *image32 = (unsigned char *)calloc(1, canvas_width * canvas_height * 4);
+  // Set up canvas.
+  unsigned char *image32 = (unsigned char *)calloc(canvas_width * canvas_height * 4, 1);
+  if (transparent == 0)
+    memset(image32, 255, canvas_width * canvas_height * 4);
 
   for (int row = 0; row < height; row++) {
     for (int col = 0; col < width; col++) {
-      int canvas_offset = (canvas_width * (offset_y + row) * 4) + ((offset_x + col) * 4);
-      int offset = (row * width + col) * 4;
+      int32_t canvas_offset = (canvas_width * (offset_y + row) * 4) + (offset_x + col) * 4;
+      int32_t offset = (row * width + col) * 4;
       // X11 can't work with 32-bit color space properly (or I'm dumb and can't
       // find appropriate info on it), so here we do a color transform: for each
       // pixel we explicitly multiply it by its alpha value to get it
@@ -36,15 +59,26 @@ XImage *ximage_from_data(
       //
       // This should not be required on systems that do support ARGB properly,
       // they should be able to just take and apply pixel's alpha value.
-      image32[canvas_offset + 0] = (u_int16_t)(brga[offset + 0]) * brga[offset + 3] / 255;
-      image32[canvas_offset + 1] = (u_int16_t)(brga[offset + 1]) * brga[offset + 3] / 255;
-      image32[canvas_offset + 2] = (u_int16_t)(brga[offset + 2]) * brga[offset + 3] / 255;
-      image32[canvas_offset + 3] = brga[offset + 3];
+      if (bgra[offset + 3] != 0) {
+        if (transparent) {
+          image32[canvas_offset + 0] = (u_int16_t)(bgra[offset + 0]) * bgra[offset + 3] / 255;
+          image32[canvas_offset + 1] = (u_int16_t)(bgra[offset + 1]) * bgra[offset + 3] / 255;
+          image32[canvas_offset + 2] = (u_int16_t)(bgra[offset + 2]) * bgra[offset + 3] / 255;
+          image32[canvas_offset + 3] = bgra[offset + 3];
+        } else {
+          image32[canvas_offset + 0] = (u_int16_t)(bgra[offset + 0]) * bgra[offset + 3] / 255
+            + (u_int16_t)(image32[canvas_offset + 0]) * (255 - bgra[offset + 3]) / 255;
+          image32[canvas_offset + 1] = (u_int16_t)(bgra[offset + 1]) * bgra[offset + 3] / 255
+            + (u_int16_t)(image32[canvas_offset + 1]) * (255 - bgra[offset + 3]) / 255;
+          image32[canvas_offset + 2] = (u_int16_t)(bgra[offset + 2]) * bgra[offset + 3] / 255
+            + (u_int16_t)(image32[canvas_offset + 2]) * (255 - bgra[offset + 3]) / 255;
+        }
+      }
     }
   }
 
-  free(brga);
-  return XCreateImage(display, visual, 32, ZPixmap, 0, (char *)image32, width, height, 32, 0);
+  free(bgra);
+  return XCreateImage(display, visual, 32, ZPixmap, 0, (char *)image32, canvas_width, canvas_height, 32, 0);
 }
 
 /** Container **/
@@ -76,7 +110,6 @@ image_holder_t *image_holder_from_png(png_t *png, Display *display, Visual *visu
     return NULL;
   }
 
-  // TODO: Frames
   holder->width = png->width;
   holder->height = png->height;
   holder->index = 0;
@@ -84,16 +117,18 @@ image_holder_t *image_holder_from_png(png_t *png, Display *display, Visual *visu
 
   if (png->frames != NULL && png->frames->length > 0) {
     holder->frames = malloc(sizeof(image_holder_frame_t) * png->frames->length);
+    holder->length = png->frames->length;
 
     for (int idx = 0; idx < png->frames->length; idx++) {
-      holder->frames[idx].delay_ms = png->frames->frames[idx].delay * 1000;
-      holder->length = png->frames->length;
+      png_frame_t *frame = png->frames->frames + idx;
+      holder->frames[idx].delay_ms = frame->delay * 1000;
       holder->frames[idx].image = ximage_from_data(
         display, visual,
-        png->frames->frames[idx].data,
+        frame->data,
         png->width, png->height,
-        png->frames->frames[idx].x_offset, png->frames->frames[idx].y_offset,
-        png->frames->frames[idx].width, png->frames->frames[idx].height
+        frame->x_offset, frame->y_offset,
+        frame->width, frame->height,
+        1
       );
     }
   } else {
@@ -105,11 +140,65 @@ image_holder_t *image_holder_from_png(png_t *png, Display *display, Visual *visu
       png->data,
       png->width, png->height,
       0, 0,
-      png->width, png->height
+      png->width, png->height,
+      1
     );
   }
 
   return holder;
+}
+
+image_holder_t *image_holder_from_gif(gif_decoded_t *gif, Display *display, Visual *visual) {
+  if (gif->image_count == 0 || gif->images == NULL) {
+    return NULL;
+  }
+
+  image_holder_t *holder = malloc(sizeof(image_holder_t));
+  if (holder == NULL) {
+    return NULL;
+  }
+
+  holder->width = gif->width;
+  holder->height = gif->height;
+  holder->index = 0;
+  holder->running = 0;
+
+  if (gif->animated) {
+    holder->frames = malloc(sizeof(image_holder_frame_t) * gif->image_count);
+    holder->length = gif->image_count;
+
+    for (int idx = 0; idx < gif->image_count; idx++) {
+      gif_decoded_image_t img = gif->images[idx];
+
+      holder->frames[idx].delay_ms = img.delay_cs * 10;
+      holder->frames[idx].image = ximage_from_data(
+        display, visual,
+        img.rgba,
+        gif->width, gif->height,
+        img.left, img.top,
+        img.width, img.height,
+        1
+      );
+    }
+  } else {
+
+  }
+
+  return holder;
+}
+
+void image_holder_set_frame_delay(image_holder_t *holder, struct itimerspec *spec, int index) {
+  if (holder->length == 0) {
+    spec->it_value.tv_sec = 0;
+    spec->it_value.tv_nsec = 0;
+    spec->it_interval.tv_sec = 0;
+    spec->it_interval.tv_nsec = 0;
+  } else {
+    spec->it_value.tv_sec = holder->frames[index].delay_ms / 1000;
+    spec->it_value.tv_nsec = (holder->frames[index].delay_ms % 1000) * 1000000;
+    spec->it_interval.tv_sec = 0;
+    spec->it_interval.tv_nsec = 0;
+  }
 }
 
 void image_holder_free(image_holder_t *holder) {
@@ -128,7 +217,7 @@ void image_holder_free(image_holder_t *holder) {
 
 /** Private API **/
 
-int processEvent(Display *display, Window window, GC gc, image_holder_t *holder);
+int process_event(Display *display, Window window, GC gc, image_holder_t *holder);
 void run_window_with_image_holder(image_holder_t *holder, Display *display, XVisualInfo vinfo);
 
 /** Public API **/
@@ -153,13 +242,23 @@ void show_image(animated_image_t *image) {
 }
 
 void show_decoded_gif(gif_decoded_t *gif) {
+  Display *display = XOpenDisplay(NULL);
+  XVisualInfo vinfo;
+  XMatchVisualInfo(display, DefaultScreen(display), 32, TrueColor, &vinfo);
 
+  image_holder_t *holder = image_holder_from_gif(gif, display, vinfo.visual);
+  if (holder == NULL) {
+    printf("Failed to convert GIF to image_holder_t\n");
+    return;
+  }
+
+  run_window_with_image_holder(holder, display, vinfo);
+  image_holder_free(holder);
 }
-
 
 /** Private **/
 
-int processEvent(Display *display, Window window, GC gc, image_holder_t *holder) {
+int process_event(Display *display, Window window, GC gc, image_holder_t *holder) {
   XEvent ev;
   XNextEvent(display, &ev);
 
@@ -199,9 +298,54 @@ void run_window_with_image_holder(image_holder_t *holder, Display *display, XVis
   XSelectInput(display, window, ButtonPressMask|ExposureMask);
   XMapWindow(display, window);
 
+  XClearWindow(display, window);
+  XFlush(display);
+
+  /* Event sources setup */
   int should_exit = 0;
+  fd_set readfds;
+
+  /* X connection FD */
+  int connection_fd = ConnectionNumber(display);
+
+  /* Animation timer */
+  int timer_fd = timerfd_create(CLOCK_REALTIME, 0);
+  struct itimerspec frame_delay;
+  image_holder_set_frame_delay(holder, &frame_delay, 0);
+  // Initial frame delay.
+  timerfd_settime(timer_fd, 0, &frame_delay, NULL);
+
+  /* Max FD value for pselect */
+  int maxfd = max_fd(2, connection_fd, timer_fd);
+
   while (should_exit == 0) {
-    should_exit = processEvent(display, window, gc, holder);
+    FD_ZERO(&readfds);
+    FD_SET(connection_fd, &readfds);
+    FD_SET(timer_fd, &readfds);
+
+    int activity = pselect(maxfd+1, &readfds, NULL, NULL, NULL, NULL);
+    if (activity == -1) {
+      perror("Error while waiting for the input");
+      break;
+    }
+
+    /* Animation timer */
+    if (FD_ISSET(timer_fd, &readfds)) {
+      // 1. Increase frame index.
+      holder->index = (holder->index + 1) % holder->length;
+      // 2. Redraw.
+      XPutImage(display, window, gc, holder->frames[holder->index].image, 0, 0, 0, 0, holder->width, holder->height);
+      // 3. Set timer to next frame.
+      image_holder_set_frame_delay(holder, &frame_delay, holder->index);
+      timerfd_settime(timer_fd, 0, &frame_delay, NULL);
+    }
+
+    /* XEvents handling */
+    if (FD_ISSET(connection_fd, &readfds)) {
+      while (XPending(display)) {
+        should_exit = process_event(display, window, gc, holder);
+      }
+    }
   }
 
   XDestroyWindow(display, window);
