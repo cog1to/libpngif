@@ -30,9 +30,9 @@ int max_fd(int count, ...) {
   return max;
 }
 
-XImage *ximage_from_data(
-  Display *display, Visual *visual,
-  unsigned char *image,
+void draw_subimage(
+  unsigned char *dest,
+  unsigned char *source,
   int32_t canvas_width, int32_t canvas_height,
   int32_t offset_x, int32_t offset_y,
   int32_t width, int32_t height,
@@ -40,12 +40,7 @@ XImage *ximage_from_data(
 ) {
   // XLib wants BGRA data instead of RGBA.
   unsigned char *bgra = malloc(width * height * 4);
-  rgba_to_bgra(image, bgra, width, height);
-
-  // Set up canvas.
-  unsigned char *image32 = (unsigned char *)calloc(canvas_width * canvas_height * 4, 1);
-  if (transparent == 0)
-    memset(image32, 255, canvas_width * canvas_height * 4);
+  rgba_to_bgra(source, bgra, width, height);
 
   for (int row = 0; row < height; row++) {
     for (int col = 0; col < width; col++) {
@@ -61,24 +56,67 @@ XImage *ximage_from_data(
       // they should be able to just take and apply pixel's alpha value.
       if (bgra[offset + 3] != 0) {
         if (transparent) {
-          image32[canvas_offset + 0] = (u_int16_t)(bgra[offset + 0]) * bgra[offset + 3] / 255;
-          image32[canvas_offset + 1] = (u_int16_t)(bgra[offset + 1]) * bgra[offset + 3] / 255;
-          image32[canvas_offset + 2] = (u_int16_t)(bgra[offset + 2]) * bgra[offset + 3] / 255;
-          image32[canvas_offset + 3] = bgra[offset + 3];
+          dest[canvas_offset + 0] = (u_int16_t)(bgra[offset + 0]) * bgra[offset + 3] / 255;
+          dest[canvas_offset + 1] = (u_int16_t)(bgra[offset + 1]) * bgra[offset + 3] / 255;
+          dest[canvas_offset + 2] = (u_int16_t)(bgra[offset + 2]) * bgra[offset + 3] / 255;
+          dest[canvas_offset + 3] = bgra[offset + 3];
         } else {
-          image32[canvas_offset + 0] = (u_int16_t)(bgra[offset + 0]) * bgra[offset + 3] / 255
-            + (u_int16_t)(image32[canvas_offset + 0]) * (255 - bgra[offset + 3]) / 255;
-          image32[canvas_offset + 1] = (u_int16_t)(bgra[offset + 1]) * bgra[offset + 3] / 255
-            + (u_int16_t)(image32[canvas_offset + 1]) * (255 - bgra[offset + 3]) / 255;
-          image32[canvas_offset + 2] = (u_int16_t)(bgra[offset + 2]) * bgra[offset + 3] / 255
-            + (u_int16_t)(image32[canvas_offset + 2]) * (255 - bgra[offset + 3]) / 255;
+          dest[canvas_offset + 0] = (u_int16_t)(bgra[offset + 0]) * bgra[offset + 3] / 255
+            + (u_int16_t)(dest[canvas_offset + 0]) * (255 - bgra[offset + 3]) / 255;
+          dest[canvas_offset + 1] = (u_int16_t)(bgra[offset + 1]) * bgra[offset + 3] / 255
+            + (u_int16_t)(dest[canvas_offset + 1]) * (255 - bgra[offset + 3]) / 255;
+          dest[canvas_offset + 2] = (u_int16_t)(bgra[offset + 2]) * bgra[offset + 3] / 255
+            + (u_int16_t)(dest[canvas_offset + 2]) * (255 - bgra[offset + 3]) / 255;
         }
       }
     }
   }
 
   free(bgra);
+}
+
+XImage *ximage_from_data(
+  Display *display, Visual *visual,
+  unsigned char *image,
+  int32_t canvas_width, int32_t canvas_height,
+  int32_t offset_x, int32_t offset_y,
+  int32_t width, int32_t height,
+  int transparent
+) {
+  // Set up canvas.
+  unsigned char *image32 = (unsigned char *)calloc(canvas_width * canvas_height * 4, 1);
+
+  // Paint white if transparency is disabled.
+  if (transparent == 0)
+    memset(image32, 255, canvas_width * canvas_height * 4);
+
+  // Draw image to the canvas.
+  draw_subimage(image32, image, canvas_width, canvas_height, offset_x, offset_y, width, height, transparent);
+
+  // Create XImage.
   return XCreateImage(display, visual, 32, ZPixmap, 0, (char *)image32, canvas_width, canvas_height, 32, 0);
+}
+
+XImage *ximage_from_tiled_gif(
+  Display *display, Visual *visual,
+  gif_decoded_t *gif,
+  int transparent
+) {
+  // Set up canvas.
+  unsigned char *image32 = (unsigned char *)calloc(gif->width * gif->height * 4, 1);
+
+  // Paint white if transparency is disabled.
+  if (transparent == 0)
+    memset(image32, 255, gif->width * gif->height * 4);
+
+  // Draw sub-images to the canvas.
+  for (int idx = 0; idx<gif->image_count; idx++) {
+    gif_decoded_image_t image = gif->images[idx];
+    draw_subimage(image32, image.rgba, gif->width, gif->height, image.left, image.top, image.width, image.height, transparent);
+  }
+
+  // Create XImage.
+  return XCreateImage(display, visual, 32, ZPixmap, 0, (char *)image32, gif->width, gif->height, 32, 0);
 }
 
 /** Container **/
@@ -181,7 +219,14 @@ image_holder_t *image_holder_from_gif(gif_decoded_t *gif, Display *display, Visu
       );
     }
   } else {
-
+    holder->frames = malloc(sizeof(image_holder_frame_t) * 1);
+    holder->length = 1;
+    holder->frames[0].delay_ms = 0;
+    holder->frames[0].image = ximage_from_tiled_gif(
+      display, visual,
+      gif,
+      1
+    );
   }
 
   return holder;
