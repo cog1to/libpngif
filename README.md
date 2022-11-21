@@ -132,11 +132,17 @@ default prefix is `/usr/local`. You can override it with something like
 make PREFIX=usr install
 ```
 
-## Tests
+## Tests & Usage
 
 There are some basic test executables for each interface level that you can use
 to verify that decoder is working correctly. You can build them with
-`make tests` or individually with something like `make test_png_parsed`.
+`make tests` or individually with something like `make test_png_parsed`. They
+would also be a good starting point for usage.
+
+The `test_image_viewer` test actually builds a small app that you can use to
+open and see various GIF and PNG files. There's a bunch of those in `samples`
+directory to check out, some taken from the official test suites, and some just
+found in the wild.
 
 ## Useful Links
 
