@@ -8,6 +8,7 @@
 
 /** Private declarations **/
 
+#define DISPOSE_NONE 0
 #define DISPOSE_APPEND 1
 #define DISPOSE_BACKGROUND 2
 #define DISPOSE_RESTORE 3
@@ -363,6 +364,7 @@ void gif_draw_frame(
   frame->duration_ms = image->delay_cs * 10;
 
   switch (image->dispose_method) {
+  case DISPOSE_NONE:
   case DISPOSE_APPEND:
     // Canvas is set to the current frame.
     memcpy(canvas, rgba, width * height * 4);
