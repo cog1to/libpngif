@@ -267,8 +267,12 @@ void animated_image_free(animated_image_t *image) {
 
   if (image->frames != NULL && image->frame_count > 0) {
     for (int idx = 0; idx < image->frame_count; idx++) {
-      image_frame_free(image->frames + idx);
+      image_frame_t *frame = image->frames + idx;
+      if (frame->rgba != NULL) {
+        free(frame->rgba);
+      }
     }
+    free(image->frames);
   }
 
   free(image);
