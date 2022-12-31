@@ -440,4 +440,5 @@ void run_window_with_image_holder(image_holder_t *holder, Display *display, XVis
   }
 
   XDestroyWindow(display, window);
+  close(timer_fd);
 }

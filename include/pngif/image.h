@@ -1,6 +1,7 @@
 #ifndef IMAGE_FRAME_HEADER
 #define IMAGE_FRAME_HEADER
 
+#include <stdio.h>
 #include <pngif/gif_decoded.h>
 #include <pngif/png_decoded.h>
 
